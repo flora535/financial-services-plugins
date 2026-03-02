@@ -27,7 +27,7 @@ plugin-name/
 
 - `marketplace.json`: Marketplace manifest - registers all plugins with source paths
 - `plugin.json`: Plugin metadata - name, description, version, and component discovery settings
-- `.mcp.json`: MCP server configuration (includes local `sec-edgar` wiring)
+- `.mcp.json`: MCP server configuration (includes local `free-sec-edgar` wiring)
 - `commands/*.md`: Slash commands invoked as `/plugin:command-name`
 - `skills/*/SKILL.md`: Detailed knowledge and workflows for specific tasks
 - `*.local.md`: User-specific configuration (gitignored)

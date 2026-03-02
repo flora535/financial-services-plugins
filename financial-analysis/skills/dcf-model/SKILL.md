@@ -11,9 +11,7 @@ This skill creates decision-quality DCF models for personal-investor equity valu
 
 ## Tools
 
-- Default to SEC-first sourcing for company fundamentals.
-- Use optional premium MCP only for verification/enrichment.
-- Include required provenance fields for externally sourced inputs: `source`, `as_of`, `freshness`, `confidence`, `fallback_used`.
+- Default to using all of the information provided by the user and MCP servers available for data sourcing.
 
 ## Critical Constraints - Read These First
 
@@ -51,28 +49,14 @@ These constraints apply throughout all DCF model building. Review before startin
 
 ## DCF Process Workflow
 
-### SEC MCP Call Flow (Fundamentals Baseline)
-When SEC MCP is available, use this call order before projections:
-1. `sec.resolve_company` -> normalize ticker/CIK identity
-2. `sec.list_filings` -> select latest 10-K/10-Q accession set
-3. `sec.get_financial_statements` -> load historical IS/BS/CF baseline
-4. `sec.get_company_facts` -> cross-check shares and key fundamentals
-5. `sec.get_filing_section` (`debt_note`) -> refine debt/WACC assumptions
-
-If required fields are missing, continue with explicit gaps:
-- mark missing cells `data unavailable`
-- lower confidence
-- surface missing fields in output summary
-
 ### Step 1: Data Retrieval and Validation
 
-Fetch data from SEC-first sources, plus user-provided data and optional verification sources.
+Fetch data from MCP servers, user provided data, and the web.
 
 **Data Sources Priority:**
-1. **SEC MCP / SEC EDGAR** - Primary for fundamentals and filing-grounded assumptions
-2. **User-Provided Data** - Historical financials and assumptions from user research
-3. **Structured secondary data** - Twelve Data / Alpha Vantage / optional premium MCP for market context fields
-4. **Web/document fallback** - Use only when higher-priority sources are unavailable; set `fallback_used=true`
+1. **MCP Servers** (if configured) - Structured financial data from availble providers 
+2. **User-Provided Data** - Historical financials from their research
+3. **Web Search/Fetch** - Current prices, beta, debt and cash when needed
 
 **Validation Checklist:**
 - Verify net debt vs net cash (critical for valuation)
@@ -1158,14 +1142,14 @@ This approach centralizes scenario logic, making the model easier to audit and m
 ### At Start of DCF Build
 
 1. **Gather market data**:
-   - Use structured secondary sources for prices/indicators and macro inputs
-   - Use web/document fallback only if preferred sources are unavailable
+   - Check for available MCP servers for current market data
+   - Use web search/fetch for stock prices, beta, and other market metrics   
    - Request from user if specific data is needed
 
 2. **Gather historical financials**:
-   - Pull from SEC MCP / SEC filings first
-   - Use premium MCP only for optional verification/enrichment
-   - Request from user if required fields remain unavailable
+   - Check for available MCP servers (Daloopa, etc.) 
+   - Request from user if not available via MCP
+   - Manual extraction from 10-Ks if necessary
 
 3. **Begin model construction** using the DCF methodology detailed in this skill
 
@@ -1202,12 +1186,10 @@ This approach centralizes scenario logic, making the model easier to audit and m
 
 ### Available Data Sources
 
-- **Primary fundamentals**: SEC MCP (`sec-*` tools) and SEC EDGAR filings
-- **Free secondary sources**: FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS
-- **Premium MCP servers (optional)**: secondary verification/enrichment when configured
-- **Web/document fallback**: only when preferred sources fail, with `fallback_used=true`
+- **MCP servers**: free sources, FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS, SEC-edgar, also premium mcp If configured (Daloopa for historical financials)
+- **Web search/fetch**: For current stock prices, beta, and market data
 - **User-provided data**: Historical financials, consensus estimates
-- **Manual extraction**: SEC EDGAR filings when direct feeds are unavailable
+- **Manual extraction**: SEC EDGAR filings as fallback
 
 ## Final Output Checklist
 

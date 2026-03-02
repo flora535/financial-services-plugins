@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   const client = new SecClient(config, cache);
 
   const server = new McpServer({
-    name: "sec-edgar",
+    name: "free-sec-edgar",
     version: "0.1.0"
   });
 
@@ -80,6 +80,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  process.stderr.write(`sec-edgar MCP failed: ${String(error)}\n`);
+  process.stderr.write(`free-sec-edgar MCP failed: ${String(error)}\n`);
   process.exit(1);
 });

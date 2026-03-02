@@ -25,10 +25,10 @@ description: |
 
 **ALWAYS follow this data source hierarchy:**
 
-1. **FIRST: Use SEC MCP or SEC EDGAR for company fundamentals** - Treat SEC filing data as the primary source of truth for revenue, margins, balance sheet, and cash flow inputs
-2. **SECOND: Use structured market-data sources as needed** - Twelve Data / Alpha Vantage / optional premium MCP for trading and market context fields not covered by filings
-3. **ONLY if primary sources are unavailable:** Use web/document fallback with explicit disclosure
-4. **NEVER use web search as a silent primary source** for fundamentals
+1. **FIRST: Check Free MCP data sources** - sec-edgar mcp, fred mcp, ny fed+ us treasury, coingecko, twelve data, alpha vantage.
+2. **SECOND: Use Paid MCP data sources if available** - If S&P Kensho MCP, FactSet MCP, or Daloopa MCP are available, use them exclusively for financial and trading information
+3. **ONLY if MCPs are unavailable:** Then use Bloomberg Terminal, SEC EDGAR filings, or other institutional sources
+4. **NEVER use web search as a primary data source** - it lacks the accuracy, audit trails, and reliability required for institutional-grade analysis
 
 **Required provenance for every externally sourced number:**
 - `source`

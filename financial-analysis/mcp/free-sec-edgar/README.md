@@ -1,17 +1,17 @@
-# SEC EDGAR MCP Server
+# Free SEC EDGAR MCP Server
 
 Local MCP server for SEC EDGAR fundamentals workflows.
 
 ## Required env
 
 ```bash
-SEC_USER_AGENT="sec-edgar-mcp/1.0 (you@example.com)"
+SEC_USER_AGENT="free-sec-edgar-mcp/1.0 (you@example.com)"
 ```
 
 ## Install + build
 
 ```bash
-cd mcp/sec-edgar
+cd mcp/free-sec-edgar
 npm install
 npm run build
 ```

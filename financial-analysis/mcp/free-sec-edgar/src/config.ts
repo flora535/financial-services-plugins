@@ -25,6 +25,6 @@ export function loadConfig(): SecConfig {
     timeoutMs: parsePositiveInt(process.env.SEC_TIMEOUT_MS, 15000),
     minIntervalMs: parsePositiveInt(process.env.SEC_MIN_INTERVAL_MS, 250),
     maxRetries: parsePositiveInt(process.env.SEC_MAX_RETRIES, 1),
-    cacheDir: process.env.SEC_CACHE_DIR?.trim() || ".cache/sec-edgar"
+    cacheDir: process.env.SEC_CACHE_DIR?.trim() || ".cache/free-sec-edgar"
   };
 }

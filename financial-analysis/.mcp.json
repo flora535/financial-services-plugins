@@ -1,9 +1,18 @@
 {
   "mcpServers": {
-    "sec-edgar": {
+    "free-fed-fred": {
       "command": "node",
       "args": [
-        "mcp/sec-edgar/dist/index.js"
+        "mcp/free-fed-fred/dist/index.js"
+      ],
+      "env": {
+        "FRED_API_KEY": "${FRED_API_KEY}"
+      }
+    },
+    "free-sec-edgar": {
+      "command": "node",
+      "args": [
+        "mcp/free-sec-edgar/dist/index.js"
       ],
       "env": {
         "SEC_USER_AGENT": "${SEC_USER_AGENT}"
