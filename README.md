@@ -46,8 +46,7 @@ claude plugin install wealth-management@financial-services-plugins
 ```
 
 ## Notes
-- `financial-analysis` includes local `free-sec-edgar` MCP support.
-- Data-source fallback rules are defined directly in each skill `SKILL.md`.
+- Now `financial-analysis` includes aphavantage official mcp and some local free-source MCP MVPs.
 
 ## Contributing
 Contributions are welcome, especially MCP integrations for additional **free** data sources that improve coverage for personal-investor workflows.

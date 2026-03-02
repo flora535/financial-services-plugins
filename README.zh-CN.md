@@ -45,15 +45,14 @@ claude plugin install wealth-management@financial-services-plugins
 ```
 
 ## 说明
-- `financial-analysis` 内置本地 `free-sec-edgar` MCP 支持。
-- 数据源回退规则写在各技能的 `SKILL.md` 中。
+- 目前`financial-analysis` 已配置alphavantage官方mcp和部分免费数据源mcp 的MVP
 
 ## 贡献
 欢迎贡献，尤其是新增 **免费** 数据源 MCP 集成，以提升个人投资工作流覆盖。
 
 重点方向：
 - 面向可信免费来源的新 MCP 连接器
-- 稳定性改进（清晰错误处理、限流友好、结果可复现）
+- 已有数据源稳定性改进（清晰错误处理、限流友好、结果可复现）
 
 ## 许可证
 
