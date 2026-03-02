@@ -1,12 +1,12 @@
 # Personal Investor Financial Plugins
-**Karami Follow-the-Soup Edition**
+**Small-Fry Grabbing Crumbs Edition**
 
 This is a personal fork rebuilt from Anthropic's official financial plugins.  
-The original version is more enterprise/institution oriented, with many modules that are too complex and rarely useful for personal investors.
-So this fork keeps only the two most essential plugins:
-- `financial-analysis` for valuation and research
-- `wealth-management` for portfolio and planning
-And adds several budget-friendly free data sources to replace expensive subscriptions.
+The original version is built for enterprise/institution workflows: too many modules, too much overhead, and a lot of stuff most personal investors will never touch.
+So this fork keeps only the two essentials:
+- `financial-analysis` handles valuation and research
+- `wealth-management` handles portfolio and planning
+And adds free data sources on top, so regular investors can still get useful coverage without paying for every premium feed.
 
 <p align="right"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a></p>
 
@@ -48,10 +48,17 @@ claude plugin install wealth-management@financial-services-plugins
 - `financial-analysis` includes local `free-sec-edgar` MCP support.
 - Data-source fallback rules are defined directly in each skill `SKILL.md`.
 
+## Contributing
+Contributions are welcome, especially MCP integrations for additional **free** data sources that improve coverage for personal-investor workflows.
+
+Priority contributions:
+- New MCP connectors for credible free sources
+- Reliability improvements (clear error handling, rate-limit-aware behavior, reproducible outputs)
+
 ## License
 
 [Apache License 2.0](./LICENSE)
 
 ## Disclaimer
 
-These plugins assist with financial workflows but do not provide financial or investing advice. Always verify conclusions with qualified professionals before acting.
+ahese plugins assist with financial workflows but do not provide financial or investing advice. Always verify conclusions with qualified professionals before acting.
