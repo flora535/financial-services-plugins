@@ -1,14 +1,15 @@
 # Personal Investor Financial Plugins
 **Small-Fry Grabbing Crumbs Edition**
 
+<p align="center"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a></p>
+
+
 This is a personal fork rebuilt from Anthropic's official financial plugins.  
 The original version is built for enterprise/institution workflows: too many modules, too much overhead, and a lot of stuff most personal investors will never touch.
 So this fork keeps only the two essentials:
 - `financial-analysis` handles valuation and research
 - `wealth-management` handles portfolio and planning
 And adds free data sources on top, so regular investors can still get useful coverage without paying for every premium feed.
-
-<p align="right"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a></p>
 
 A focused Claude plugin suite for personal investors and advisors.
 

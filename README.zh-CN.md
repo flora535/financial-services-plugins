@@ -1,13 +1,14 @@
 # 个人投资与财富管理插件
 **卡拉米跟着喝汤版**
+
+<p align="center"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a></p>
+
 这是从 Anthropic 官方 financial plugins 拆出来重做的个人版本。  
 原版偏企业/机构协作，模块多且繁杂，很多能力对个人投资者基本用不到。 
 所以只保留两个最核心插件：
 - `financial-analysis` 负责研究估值
 - `wealth-management` 负责组合与规划
 以及增加了数个穷鬼友好数据源替代原版死贵死贵的订阅
-
-<p align="right"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a></p>
 
 一个面向个人投资者与理财顾问的 Claude 插件套件。
 
