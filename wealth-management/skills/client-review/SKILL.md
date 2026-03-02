@@ -2,6 +2,16 @@
 
 description: Prepare for client review meetings with portfolio performance summary, allocation analysis, talking points, and action items. Pulls together account data into a concise meeting-ready format. Use before quarterly reviews, annual checkups, or ad-hoc client meetings. Triggers on "client review", "meeting prep for [client]", "quarterly review", "prep for [client name]", or "client meeting".
 
+## Data Source Policy (Required)
+
+- Follow `financial-analysis/skills/source-policy/SKILL.md`.
+- For market/macro/performance claims sourced externally, include:
+  - `source`
+  - `as_of`
+  - `freshness`
+  - `confidence`
+  - `fallback_used`
+
 ## Workflow
 
 ### Step 1: Client Context

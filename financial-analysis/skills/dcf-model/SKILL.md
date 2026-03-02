@@ -7,11 +7,13 @@ description: Real DCF (Discounted Cash Flow) model creation for equity valuation
 
 ## Overview
 
-This skill creates institutional-quality DCF models for equity valuation following investment banking standards. Each analysis produces a detailed Excel model (with sensitivity analysis included at the bottom of the DCF sheet).
+This skill creates decision-quality DCF models for personal-investor equity valuation. Each analysis produces a detailed Excel model (with sensitivity analysis included at the bottom of the DCF sheet).
 
 ## Tools
 
-- Default to using all of the information provided by the user and MCP servers available for data sourcing.
+- Follow the shared policy in `financial-analysis/skills/source-policy/SKILL.md`.
+- Default to free-first domain routing; use premium MCP only as optional verification/enrichment.
+- Include required provenance fields for externally sourced inputs: `source`, `as_of`, `freshness`, `confidence`, `fallback_used`.
 
 ## Critical Constraints - Read These First
 
@@ -51,12 +53,13 @@ These constraints apply throughout all DCF model building. Review before startin
 
 ### Step 1: Data Retrieval and Validation
 
-Fetch data from MCP servers, user provided data, and the web.
+Fetch data using the shared domain routing policy, plus user-provided data.
 
 **Data Sources Priority:**
-1. **MCP Servers** (if configured) - Structured financial data from providers like Daloopa
-2. **User-Provided Data** - Historical financials from their research
-3. **Web Search/Fetch** - Current prices, beta, debt and cash when needed
+1. **Free primary sources by domain** - SEC EDGAR for fundamentals; FRED/NY Fed/Treasury for macro; Twelve Data/Alpha Vantage for market data
+2. **User-provided data** - Historical financials and assumptions from user research
+3. **Premium MCP (optional)** - Verification/enrichment when available
+4. **Web/document fallback** - Use only when higher-priority sources are unavailable; set `fallback_used=true`
 
 **Validation Checklist:**
 - Verify net debt vs net cash (critical for valuation)
@@ -1142,14 +1145,14 @@ This approach centralizes scenario logic, making the model easier to audit and m
 ### At Start of DCF Build
 
 1. **Gather market data**:
-   - Check for available MCP servers for current market data
-   - Use web search/fetch for stock prices, beta, and other market metrics
+   - Use source-policy routing for prices/indicators and macro inputs
+   - Use web/document fallback only if preferred sources are unavailable
    - Request from user if specific data is needed
 
 2. **Gather historical financials**:
-   - Check for available MCP servers (Daloopa, etc.)
-   - Request from user if not available via MCP
-   - Manual extraction from 10-Ks if necessary
+   - Pull from SEC filings first (source-policy fundamentals domain)
+   - Use premium MCP only for optional verification/enrichment
+   - Request from user if required fields remain unavailable
 
 3. **Begin model construction** using the DCF methodology detailed in this skill
 
@@ -1186,10 +1189,11 @@ This approach centralizes scenario logic, making the model easier to audit and m
 
 ### Available Data Sources
 
-- **MCP servers**: If configured (Daloopa for historical financials)
-- **Web search/fetch**: For current stock prices, beta, and market data
+- **Free primary sources**: SEC EDGAR, FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS
+- **Premium MCP servers (optional)**: secondary verification/enrichment when configured
+- **Web/document fallback**: only when preferred sources fail, with `fallback_used=true`
 - **User-provided data**: Historical financials, consensus estimates
-- **Manual extraction**: SEC EDGAR filings as fallback
+- **Manual extraction**: SEC EDGAR filings when direct feeds are unavailable
 
 ## Final Output Checklist
 

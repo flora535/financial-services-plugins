@@ -1,7 +1,7 @@
 {
   "name": "wealth-management",
   "version": "0.1.0",
-  "description": "Wealth management and financial advisory tools: client reviews, financial planning, portfolio analysis, and client reporting",
+  "description": "Personal wealth workflows: client reviews, financial planning, portfolio rebalancing, reporting, and tax-loss harvesting.",
   "author": {
     "name": "Anthropic FSI"
   }

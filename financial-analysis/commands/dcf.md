@@ -5,7 +5,7 @@ argument-hint: "[company name or ticker]"
 
 # DCF Valuation Command
 
-Build an institutional-quality DCF model that uses comparable company analysis to inform valuation ranges.
+Build a personal-investor DCF model that uses comparable company analysis to inform valuation ranges.
 
 ## Workflow
 
@@ -41,6 +41,13 @@ Use `skill: "dcf-model"` to:
 4. Calculate WACC using CAPM
 5. Discount cash flows and calculate terminal value
 6. Bridge to equity value and implied share price
+
+Apply `skill: "source-policy"` for all external data routing and provenance metadata:
+- `source`
+- `as_of`
+- `freshness`
+- `confidence`
+- `fallback_used`
 
 **Use comps to inform DCF assumptions:**
 

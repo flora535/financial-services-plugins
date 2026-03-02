@@ -5,7 +5,7 @@ argument-hint: "[company name or ticker]"
 
 # Comparable Company Analysis Command
 
-Build an institutional-grade comparable company analysis with operating metrics, valuation multiples, and statistical benchmarking.
+Build a personal-investor comparable company analysis with operating metrics, valuation multiples, and statistical benchmarking.
 
 ## Workflow
 
@@ -17,6 +17,7 @@ If a company name or ticker is provided, use it. Otherwise ask:
 ### Step 2: Load Comps Analysis Skill
 
 Use `skill: "comps-analysis"` to build the analysis:
+- Follow `skill: "source-policy"` for domain routing and provenance requirements.
 
 1. **Clarify the analysis purpose**:
    - "What's the key question?" (valuation, efficiency, growth comparison)
@@ -29,15 +30,15 @@ Use `skill: "comps-analysis"` to build the analysis:
    - Same industry/sector
    - Geographic comparability
 
-3. **Gather data** (prioritize MCP sources if available):
+3. **Gather data** (use free-first domain routing from `source-policy`):
    - Operating metrics: Revenue, Growth, Gross Margin, EBITDA, EBITDA Margin
    - Valuation: Market Cap, Enterprise Value, EV/Revenue, EV/EBITDA, P/E
    - Additional metrics based on industry (Rule of 40 for SaaS, etc.)
 
 4. **Build the analysis**:
-   - Operating Statistics section with company data + statistics (Max, 75th, Median, 25th, Min)
-   - Valuation Multiples section with same statistical summary
-   - Notes & Methodology documentation
+  - Operating Statistics section with company data + statistics (Max, 75th, Median, 25th, Min)
+  - Valuation Multiples section with same statistical summary
+  - Notes & Methodology documentation including `source`, `as_of`, `freshness`, `confidence`, `fallback_used` for external claims
 
 ### Step 3: Create Excel Output
 
