@@ -6,3 +6,5 @@ argument-hint: "[path to template file]"
 Load the `3-statements` skill and populate a 3-statement financial model (Income Statement, Balance Sheet, Cash Flow Statement).
 
 If a file path is provided, use it as the template. Otherwise ask the user for their model template.
+
+When external public-company data is required by the template, follow the SEC extraction path in the skill (SEC MCP when available, SEC filing reference otherwise).

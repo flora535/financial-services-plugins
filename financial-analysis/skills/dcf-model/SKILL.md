@@ -11,8 +11,8 @@ This skill creates decision-quality DCF models for personal-investor equity valu
 
 ## Tools
 
-- Follow the shared policy in `financial-analysis/skills/source-policy/SKILL.md`.
-- Default to free-first domain routing; use premium MCP only as optional verification/enrichment.
+- Default to SEC-first sourcing for company fundamentals.
+- Use optional premium MCP only for verification/enrichment.
 - Include required provenance fields for externally sourced inputs: `source`, `as_of`, `freshness`, `confidence`, `fallback_used`.
 
 ## Critical Constraints - Read These First
@@ -51,14 +51,27 @@ These constraints apply throughout all DCF model building. Review before startin
 
 ## DCF Process Workflow
 
+### SEC MCP Call Flow (Fundamentals Baseline)
+When SEC MCP is available, use this call order before projections:
+1. `sec.resolve_company` -> normalize ticker/CIK identity
+2. `sec.list_filings` -> select latest 10-K/10-Q accession set
+3. `sec.get_financial_statements` -> load historical IS/BS/CF baseline
+4. `sec.get_company_facts` -> cross-check shares and key fundamentals
+5. `sec.get_filing_section` (`debt_note`) -> refine debt/WACC assumptions
+
+If required fields are missing, continue with explicit gaps:
+- mark missing cells `data unavailable`
+- lower confidence
+- surface missing fields in output summary
+
 ### Step 1: Data Retrieval and Validation
 
-Fetch data using the shared domain routing policy, plus user-provided data.
+Fetch data from SEC-first sources, plus user-provided data and optional verification sources.
 
 **Data Sources Priority:**
-1. **Free primary sources by domain** - SEC EDGAR for fundamentals; FRED/NY Fed/Treasury for macro; Twelve Data/Alpha Vantage for market data
-2. **User-provided data** - Historical financials and assumptions from user research
-3. **Premium MCP (optional)** - Verification/enrichment when available
+1. **SEC MCP / SEC EDGAR** - Primary for fundamentals and filing-grounded assumptions
+2. **User-Provided Data** - Historical financials and assumptions from user research
+3. **Structured secondary data** - Twelve Data / Alpha Vantage / optional premium MCP for market context fields
 4. **Web/document fallback** - Use only when higher-priority sources are unavailable; set `fallback_used=true`
 
 **Validation Checklist:**
@@ -1145,12 +1158,12 @@ This approach centralizes scenario logic, making the model easier to audit and m
 ### At Start of DCF Build
 
 1. **Gather market data**:
-   - Use source-policy routing for prices/indicators and macro inputs
+   - Use structured secondary sources for prices/indicators and macro inputs
    - Use web/document fallback only if preferred sources are unavailable
    - Request from user if specific data is needed
 
 2. **Gather historical financials**:
-   - Pull from SEC filings first (source-policy fundamentals domain)
+   - Pull from SEC MCP / SEC filings first
    - Use premium MCP only for optional verification/enrichment
    - Request from user if required fields remain unavailable
 
@@ -1189,7 +1202,8 @@ This approach centralizes scenario logic, making the model easier to audit and m
 
 ### Available Data Sources
 
-- **Free primary sources**: SEC EDGAR, FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS
+- **Primary fundamentals**: SEC MCP (`sec-*` tools) and SEC EDGAR filings
+- **Free secondary sources**: FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS
 - **Premium MCP servers (optional)**: secondary verification/enrichment when configured
 - **Web/document fallback**: only when preferred sources fail, with `fallback_used=true`
 - **User-provided data**: Historical financials, consensus estimates

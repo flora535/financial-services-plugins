@@ -17,7 +17,7 @@ If a company name or ticker is provided, use it. Otherwise ask:
 ### Step 2: Load Comps Analysis Skill
 
 Use `skill: "comps-analysis"` to build the analysis:
-- Follow `skill: "source-policy"` for domain routing and provenance requirements.
+- Follow the explicit fallback hierarchy defined in `comps-analysis` (SEC-first fundamentals, structured secondary sources, web last).
 
 1. **Clarify the analysis purpose**:
    - "What's the key question?" (valuation, efficiency, growth comparison)
@@ -30,7 +30,7 @@ Use `skill: "comps-analysis"` to build the analysis:
    - Same industry/sector
    - Geographic comparability
 
-3. **Gather data** (use free-first domain routing from `source-policy`):
+3. **Gather data** (use the hierarchy in `comps-analysis`):
    - Operating metrics: Revenue, Growth, Gross Margin, EBITDA, EBITDA Margin
    - Valuation: Market Cap, Enterprise Value, EV/Revenue, EV/EBITDA, P/E
    - Additional metrics based on industry (Rule of 40 for SaaS, etc.)

@@ -130,6 +130,17 @@ Use a scenario toggle (dropdown) in the Assumptions tab with CHOOSE or INDEX/MAT
 
 If the template specifically requires pulling data from SEC filings (10-K, 10-Q), see [references/sec-filings.md](references/sec-filings.md) for detailed extraction guidance. This reference is only needed when populating templates with public company data from regulatory filings.
 
+When SEC MCP is available, use this sequence for template-fill workflows:
+1. `sec.resolve_company` -> map ticker to CIK
+2. `sec.list_filings` -> identify the target filing accession
+3. `sec.get_financial_statements` -> pull structured IS/BS/CF lines
+4. `sec.get_filing_section` for note-level context when needed (e.g., debt schedules)
+
+If fields required by the template are missing from SEC responses:
+- keep formulas intact
+- enter `data unavailable` in input/comment context
+- do not silently substitute from web sources
+
 ## Completing Model Templates
 
 This section provides general guidance for completing any 3-statement financial model template while preserving existing formulas and ensuring data integrity.

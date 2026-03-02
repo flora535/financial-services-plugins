@@ -23,23 +23,37 @@ description: |
 
 ## ⚠️ CRITICAL: Data Source Priority (READ FIRST)
 
-**ALWAYS follow the shared source policy:**
+**ALWAYS follow this data source hierarchy:**
 
-- `financial-analysis/skills/source-policy/SKILL.md`
-- Use domain routing defaults from that file (free-first by domain, premium MCP optional, web fallback last).
-- For every externally sourced number, include:
-  - `source`
-  - `as_of`
-  - `freshness`
-  - `confidence`
-  - `fallback_used`
+1. **FIRST: Use SEC MCP or SEC EDGAR for company fundamentals** - Treat SEC filing data as the primary source of truth for revenue, margins, balance sheet, and cash flow inputs
+2. **SECOND: Use structured market-data sources as needed** - Twelve Data / Alpha Vantage / optional premium MCP for trading and market context fields not covered by filings
+3. **ONLY if primary sources are unavailable:** Use web/document fallback with explicit disclosure
+4. **NEVER use web search as a silent primary source** for fundamentals
 
-**Why this matters:** personal-investor workflows need transparent provenance and resilient fallbacks without silently treating web data as a primary source.
+**Required provenance for every externally sourced number:**
+- `source`
+- `as_of`
+- `freshness`
+- `confidence`
+- `fallback_used`
+
+**Why this matters:** SEC-first sourcing preserves auditability and consistency while keeping costs near zero.
 
 ---
 
 ## Overview
 This skill teaches Claude to build decision-quality comparable company analyses for personal investors. The output is a structured Excel/spreadsheet that enables informed investment decisions through peer comparison.
+
+## SEC MCP Call Flow (Fundamentals)
+For each comparable company, use this call order when SEC MCP is available:
+1. `sec.resolve_company` -> map ticker to CIK
+2. `sec.get_company_facts` -> pull standardized fundamentals
+3. `sec.list_filings` -> capture latest filing date/accession for provenance
+
+If any required metric is missing:
+- mark that metric as `data unavailable`
+- lower `confidence`
+- set `fallback_used=true` only for the substituted fields
 
 **Reference Material & Contextualization:**
 
@@ -243,7 +257,7 @@ Same structure as operating section: Max, 75th, Median, 25th, Min for every metr
 - Where did the data come from? (SEC EDGAR, Twelve Data, Alpha Vantage, premium MCP optional, or documented web fallback)
 - What period does it cover? (Q4 2024, audited figures)
 - How was it verified? (Cross-checked against 10-K/10-Q)
-- Note: follow `source-policy` domain routing and include all required provenance fields
+- Note: follow this skill's hierarchy and include all required provenance fields
 
 **Key Definitions:**
 - EBITDA calculation method (Gross Profit + D&A, or Operating Income + D&A)
@@ -411,7 +425,7 @@ This helps answer: "Is our target company trading rich or cheap vs. peers?"
    - Lock in units and date references
 
 2. **Gather data** (60-90 minutes)
-   - Pull from primary sources per `source-policy` (free-first by domain; premium MCP optional; web last)
+   - Pull from SEC MCP / SEC EDGAR first for fundamentals; use secondary sources only for missing non-filing fields
    - Input all raw numbers in blue
    - Document sources in notes section
 

@@ -1,5 +1,14 @@
 {
   "mcpServers": {
+    "sec-edgar": {
+      "command": "node",
+      "args": [
+        "mcp/sec-edgar/dist/index.js"
+      ],
+      "env": {
+        "SEC_USER_AGENT": "${SEC_USER_AGENT}"
+      }
+    },
     "daloopa": {
       "type": "http",
       "url": "https://mcp.daloopa.com/server/mcp"

@@ -2,16 +2,6 @@
 
 description: Build or update a comprehensive financial plan covering retirement projections, education funding, estate planning, and cash flow analysis. Use for new client onboarding, annual plan reviews, or scenario modeling. Triggers on "financial plan", "retirement plan", "can I retire", "education funding", "estate plan", "cash flow analysis", or "plan update".
 
-## Data Source Policy (Required)
-
-- Follow `financial-analysis/skills/source-policy/SKILL.md`.
-- For market/macro/performance claims sourced externally, include:
-  - `source`
-  - `as_of`
-  - `freshness`
-  - `confidence`
-  - `fallback_used`
-
 ## Workflow
 
 ### Step 1: Client Profile

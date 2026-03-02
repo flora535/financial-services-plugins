@@ -2,16 +2,6 @@
 
 description: Identify tax-loss harvesting opportunities across taxable accounts. Finds positions with unrealized losses, suggests replacement securities, and tracks wash sale windows. Triggers on "tax-loss harvesting", "TLH", "harvest losses", "tax losses", "unrealized losses", or "year-end tax planning".
 
-## Data Source Policy (Required)
-
-- Follow `financial-analysis/skills/source-policy/SKILL.md`.
-- For market/macro/performance claims sourced externally, include:
-  - `source`
-  - `as_of`
-  - `freshness`
-  - `confidence`
-  - `fallback_used`
-
 ## Workflow
 
 ### Step 1: Identify Candidates

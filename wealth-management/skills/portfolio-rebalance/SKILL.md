@@ -2,16 +2,6 @@
 
 description: Analyze portfolio allocation drift and generate rebalancing trade recommendations across accounts. Considers tax implications, transaction costs, and wash sale rules. Triggers on "rebalance", "portfolio drift", "allocation check", "rebalancing trades", or "my portfolio is out of balance".
 
-## Data Source Policy (Required)
-
-- Follow `financial-analysis/skills/source-policy/SKILL.md`.
-- For market/macro/performance claims sourced externally, include:
-  - `source`
-  - `as_of`
-  - `freshness`
-  - `confidence`
-  - `fallback_used`
-
 ## Workflow
 
 ### Step 1: Current State

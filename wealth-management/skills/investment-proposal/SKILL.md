@@ -2,16 +2,6 @@
 
 description: Create professional investment proposals for prospective clients. Covers the firm's approach, proposed allocation, expected outcomes, and fee structure. Use when pitching new clients or presenting a new investment strategy. Triggers on "investment proposal", "prospect presentation", "pitch new client", "proposal for [client]", or "new client presentation".
 
-## Data Source Policy (Required)
-
-- Follow `financial-analysis/skills/source-policy/SKILL.md`.
-- For market/macro/performance claims sourced externally, include:
-  - `source`
-  - `as_of`
-  - `freshness`
-  - `confidence`
-  - `fallback_used`
-
 ## Workflow
 
 ### Step 1: Prospect Context
