@@ -41,20 +41,47 @@ See [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md) for details.
 | Google News | Unlimited | ❌ | [server-google-news](https://github.com/chanmeng666/server-google-news) | News search; web search covers most of this |
 | Massive API | 5 calls/min, 2yr history | ✅ | [Official MCP](https://github.com/massive-com/mcp_massive) | Stocks, fundamentals, analyst ratings, options, crypto |
 
-## Getting Started
+## Quick Start
 
-### Cowork
-Install plugins from [claude.com/plugins](https://claude.com/plugins/).
+After installing, the most useful command for day-to-day investing:
 
-### Claude Code
+```
+/financial-analysis:evaluate AAPL at 150
+```
+
+This runs a quick multi-factor evaluation (valuation, fundamentals, technicals, catalysts, your P&L) and gives you a **Buy More / Hold / Trim / Sell** signal with conviction level. It pulls live data from SEC EDGAR, Massive API, FRED, and Twelve Data — then suggests deeper analysis when warranted:
+
+- Signal says Buy More? → It'll suggest `/financial-analysis:dcf` for intrinsic value
+- Sitting on a loss? → It'll flag `/wealth-management:tlh` for tax-loss harvesting
+- Trimming? → It'll point to `/wealth-management:rebalance` for portfolio impact
+
+### All Commands
+
+| Command | What it does |
+|---------|-------------|
+| `/financial-analysis:evaluate` | Quick buy/hold/sell signal for a position |
+| `/financial-analysis:dcf` | Full DCF valuation with comps-informed terminal multiples |
+| `/financial-analysis:comps` | Comparable company trading multiples analysis |
+| `/financial-analysis:3-statements` | Fill out IS/BS/CF model templates |
+| `/financial-analysis:lbo` | LBO model for PE acquisitions |
+| `/financial-analysis:competitive-analysis` | Competitive landscape analysis |
+| `/financial-analysis:check-deck` | QC a presentation deck |
+| `/financial-analysis:debug-model` | Audit a financial model for errors |
+| `/wealth-management:client-review` | Prep client review meetings |
+| `/wealth-management:rebalance` | Drift analysis + rebalancing trades |
+| `/wealth-management:tlh` | Tax-loss harvesting opportunities |
+| `/wealth-management:client-report` | Performance reports |
+| `/wealth-management:proposal` | Investment proposals |
+| `/wealth-management:financial-plan` | Build/update financial plans |
+
+### Installation
+
+**Cowork:** Install from [claude.com/plugins](https://claude.com/plugins/).
+
+**Claude Code:**
 ```bash
-# Add the marketplace
 claude plugin marketplace add flora535/financial-services-plugins
-
-# Install the core plugin first
 claude plugin install financial-analysis@financial-services-plugins
-
-# Install wealth management add-on
 claude plugin install wealth-management@financial-services-plugins
 ```
 

@@ -42,18 +42,45 @@
 
 ## 快速开始
 
-### Cowork
-在 [claude.com/plugins](https://claude.com/plugins/) 安装插件。
+安装后，日常投资最常用的命令：
 
-### Claude Code
+```
+/financial-analysis:evaluate AAPL at 150
+```
+
+对持仓做多因子快速评估（估值、基本面、技术面、催化剂、盈亏），输出 **加仓 / 持有 / 减仓 / 卖出** 信号及置信度。自动从 SEC EDGAR、Massive API、FRED、Twelve Data 拉取实时数据，并在需要时建议深入分析：
+
+- 信号为加仓？→ 建议跑 `/financial-analysis:dcf` 算内在价值
+- 持仓浮亏？→ 提示 `/wealth-management:tlh` 做税损收割
+- 建议减仓？→ 指向 `/wealth-management:rebalance` 评估组合影响
+
+### 全部命令
+
+| 命令 | 功能 |
+|------|------|
+| `/financial-analysis:evaluate` | 持仓快速买卖信号 |
+| `/financial-analysis:dcf` | DCF 估值（含可比公司终值倍数） |
+| `/financial-analysis:comps` | 可比公司交易倍数分析 |
+| `/financial-analysis:3-statements` | 填充利润表/资产负债表/现金流量表模板 |
+| `/financial-analysis:lbo` | PE 收购 LBO 模型 |
+| `/financial-analysis:competitive-analysis` | 竞争格局分析 |
+| `/financial-analysis:check-deck` | 演示文稿质检 |
+| `/financial-analysis:debug-model` | 财务模型审计纠错 |
+| `/wealth-management:client-review` | 客户回顾会议准备 |
+| `/wealth-management:rebalance` | 偏离分析与再平衡交易 |
+| `/wealth-management:tlh` | 税损收割机会识别 |
+| `/wealth-management:client-report` | 业绩报告 |
+| `/wealth-management:proposal` | 投资建议书 |
+| `/wealth-management:financial-plan` | 财务规划 |
+
+### 安装
+
+**Cowork：** 在 [claude.com/plugins](https://claude.com/plugins/) 安装。
+
+**Claude Code：**
 ```bash
-# 添加插件市场
 claude plugin marketplace add flora535/financial-services-plugins
-
-# 先安装核心插件
 claude plugin install financial-analysis@financial-services-plugins
-
-# 再安装财富管理插件
 claude plugin install wealth-management@financial-services-plugins
 ```
 
