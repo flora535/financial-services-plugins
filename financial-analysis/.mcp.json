@@ -25,6 +25,23 @@
       "type": "http",
       "url": "https://mcp.alphavantage.co/mcp?apikey=${ALPHAVANTAGE_API_KEY}"
     },
+    "twelvedata": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-twelve-data@latest",
+        "-k",
+        "${TWELVEDATA_API_KEY}"
+      ]
+    },
+    "massive": {
+      "command": "uvx",
+      "args": [
+        "mcp-massive"
+      ],
+      "env": {
+        "MASSIVE_API_KEY": "${MASSIVE_API_KEY}"
+      }
+    },
     "daloopa": {
       "type": "http",
       "url": "https://mcp.daloopa.com/server/mcp"

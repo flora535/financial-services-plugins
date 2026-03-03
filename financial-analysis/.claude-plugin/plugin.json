@@ -1,7 +1,7 @@
 {
   "name": "financial-analysis",
   "version": "0.1.0",
-  "description": "Personal-investor analysis tools: DCF, comps, 3-statement modeling, and decision support with source provenance.",
+  "description": "Personal-investor analysis tools: DCF, comps, 3-statement modeling, and decision support.",
   "author": {
     "name": "Anthropic FSI"
   }

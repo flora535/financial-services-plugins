@@ -16,16 +16,16 @@
 - `financial-analysis`
 - `wealth-management`
 
-该套件默认采用“免费数据源优先”的研究策略，并强制输出来源溯源字段。
+该套件默认采用”免费数据源优先”的研究策略。
 
 ## 插件市场
 
 | 插件 | 类型 | 作用 |
 |------|------|------|
-| **[financial-analysis](./financial-analysis)** | 核心 | 面向美股个股的可比分析（Comps）、DCF 与三表建模，支持来源元数据与回退策略。 |
+| **[financial-analysis](./financial-analysis)** | 核心 | 面向美股个股的可比分析（Comps）、DCF 与三表建模。 |
 | **[wealth-management](./wealth-management)** | 增强 | 客户回顾/报告、财务规划、组合再平衡与税损收割工作流。 |
 
-## 数据源策略
+## 新增免费数据源
 
 详见 [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md)。
 
@@ -36,9 +36,9 @@
 | Alpha Vantage | 25次/天 | ✅ | [官方远程 MCP](https://mcp.alphavantage.co) | 行情、技术指标、基本面 |
 | NY Fed + U.S. Treasury | 无限制 | ❌ | — | SOFR、ON RRP、TGA |
 | CoinGecko | 50次/分钟 | ❌ | — | BTC/ETH 现货价格 |
-| Twelve Data | 800次/天，8只标的 | ❌ | — | 股票/加密行情 |
-| Google News RSS | 无限制 | ❌ | — | 默认新闻层 |
-| Massive API | 5次/分钟，2年历史 | ❌ | — | 可选备用 |
+| Twelve Data | 800次/天，8只标的 | ✅ | [官方 MCP](https://github.com/twelvedata/mcp) | 股票/加密行情 |
+| Google News | 无限制 | ❌ | [server-google-news](https://github.com/chanmeng666/server-google-news) | 新闻搜索；网页搜索已覆盖大部分功能 |
+| Massive API | 5次/分钟，2年历史 | ✅ | [官方 MCP](https://github.com/massive-com/mcp_massive) | 股票、基本面、分析师评级、期权、加密货币 |
 
 ## 快速开始
 

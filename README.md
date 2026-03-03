@@ -17,16 +17,16 @@ This repository now contains only two plugins:
 - `financial-analysis`
 - `wealth-management`
 
-The suite is optimized for free-source-first research and requires provenance metadata in outputs.
+The suite is optimized for free-source-first research.
 
 ## Plugin Marketplace
 
 | Plugin | Type | How it helps |
 |------|------|------|
-| **[financial-analysis](./financial-analysis)** | Core | Comparable analysis (Comps), DCF, and 3-statement modeling for U.S. equities, with source metadata and fallback handling. |
+| **[financial-analysis](./financial-analysis)** | Core | Comparable analysis (Comps), DCF, and 3-statement modeling for U.S. equities. |
 | **[wealth-management](./wealth-management)** | Add-on | Client review/reporting, financial planning, portfolio rebalancing, and tax-loss harvesting workflows. |
 
-## Data Source Strategy
+## Free Data Sources Added
 
 See [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md) for details.
 
@@ -37,9 +37,9 @@ See [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md) for details.
 | Alpha Vantage | 25 calls/day | ✅ | [Official remote MCP](https://mcp.alphavantage.co) | Quotes, indicators, fundamentals |
 | NY Fed + U.S. Treasury | Unlimited | ❌ | — | SOFR, ON RRP, TGA |
 | CoinGecko | 50 calls/min | ❌ | — | BTC/ETH spot prices |
-| Twelve Data | 800 calls/day, 8 symbols | ❌ | — | Stock/crypto quotes |
-| Google News RSS | Unlimited | ❌ | — | Default news layer |
-| Massive API | 5 calls/min, 2yr history | ❌ | — | Optional backup |
+| Twelve Data | 800 calls/day, 8 symbols | ✅ | [Official MCP](https://github.com/twelvedata/mcp) | Stock/crypto quotes |
+| Google News | Unlimited | ❌ | [server-google-news](https://github.com/chanmeng666/server-google-news) | News search; web search covers most of this |
+| Massive API | 5 calls/min, 2yr history | ✅ | [Official MCP](https://github.com/massive-com/mcp_massive) | Stocks, fundamentals, analyst ratings, options, crypto |
 
 ## Getting Started
 
@@ -74,4 +74,4 @@ Priority contributions:
 
 ## Disclaimer
 
-ahese plugins assist with financial workflows but do not provide financial or investing advice. Always verify conclusions with qualified professionals before acting.
+These plugins assist with financial workflows but do not provide financial or investing advice. Always verify conclusions with qualified professionals before acting.

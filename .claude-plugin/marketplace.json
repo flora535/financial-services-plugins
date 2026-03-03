@@ -7,7 +7,7 @@
     {
       "name": "financial-analysis",
       "source": "./financial-analysis",
-      "description": "Personal-investor analysis tools: DCF, comps, 3-statement models, and portfolio-ready decision support with source provenance."
+      "description": "Personal-investor analysis tools: DCF, comps, 3-statement modeling, and decision support."
     },
     {
       "name": "wealth-management",

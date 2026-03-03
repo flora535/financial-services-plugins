@@ -54,7 +54,7 @@ These constraints apply throughout all DCF model building. Review before startin
 Fetch data from MCP servers, user provided data, and the web.
 
 **Data Sources Priority:**
-1. **MCP Servers** (if configured) - Structured financial data from availble providers 
+1. **MCP Servers** (if configured) - Structured financial data from providers like SEC EDGAR and Daloopa; market data from Massive, Twelve Data and Alpha Vantage; macro rates from FRED
 2. **User-Provided Data** - Historical financials from their research
 3. **Web Search/Fetch** - Current prices, beta, debt and cash when needed
 
@@ -1186,10 +1186,9 @@ This approach centralizes scenario logic, making the model easier to audit and m
 
 ### Available Data Sources
 
-- **MCP servers**: free sources, FRED, NY Fed, U.S. Treasury, Twelve Data, Alpha Vantage, CoinGecko, Google News RSS, SEC-edgar, also premium mcp If configured (Daloopa for historical financials)
+- **MCP servers**: If configured (SEC EDGAR and Daloopa for historical financials; Massive, Twelve Data and Alpha Vantage for market data; FRED for macro rates)
 - **Web search/fetch**: For current stock prices, beta, and market data
 - **User-provided data**: Historical financials, consensus estimates
-- **Manual extraction**: SEC EDGAR filings as fallback
 
 ## Final Output Checklist
 

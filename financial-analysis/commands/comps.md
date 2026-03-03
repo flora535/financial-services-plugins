@@ -17,7 +17,6 @@ If a company name or ticker is provided, use it. Otherwise ask:
 ### Step 2: Load Comps Analysis Skill
 
 Use `skill: "comps-analysis"` to build the analysis:
-- Follow the explicit fallback hierarchy defined in `comps-analysis` (SEC-first fundamentals, structured secondary sources, web last).
 
 1. **Clarify the analysis purpose**:
    - "What's the key question?" (valuation, efficiency, growth comparison)
@@ -30,15 +29,15 @@ Use `skill: "comps-analysis"` to build the analysis:
    - Same industry/sector
    - Geographic comparability
 
-3. **Gather data** (use the hierarchy in `comps-analysis`):
+3. **Gather data** (prioritize MCP sources if available):
    - Operating metrics: Revenue, Growth, Gross Margin, EBITDA, EBITDA Margin
    - Valuation: Market Cap, Enterprise Value, EV/Revenue, EV/EBITDA, P/E
    - Additional metrics based on industry (Rule of 40 for SaaS, etc.)
 
 4. **Build the analysis**:
-  - Operating Statistics section with company data + statistics (Max, 75th, Median, 25th, Min)
-  - Valuation Multiples section with same statistical summary
-  - Notes & Methodology documentation including `source`, `as_of`, `freshness`, `confidence`, `fallback_used` for external claims
+   - Operating Statistics section with company data + statistics (Max, 75th, Median, 25th, Min)
+   - Valuation Multiples section with same statistical summary
+   - Notes & Methodology documentation
 
 ### Step 3: Create Excel Output
 

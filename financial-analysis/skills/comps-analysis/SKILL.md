@@ -25,35 +25,17 @@ description: |
 
 **ALWAYS follow this data source hierarchy:**
 
-1. **FIRST: Check Free MCP data sources** - sec-edgar mcp, fred mcp, ny fed+ us treasury, coingecko, twelve data, alpha vantage.
-2. **SECOND: Use Paid MCP data sources if available** - If S&P Kensho MCP, FactSet MCP, or Daloopa MCP are available, use them exclusively for financial and trading information
+1. **FIRST: Check for MCP data sources** - If SEC EDGAR MCP, S&P Kensho MCP, FactSet MCP, Daloopa MCP, Massive MCP, Twelve Data MCP, or Alpha Vantage MCP are available, use them for financial and trading information
+2. **DO NOT use web search** if the above MCP data sources are available
 3. **ONLY if MCPs are unavailable:** Then use Bloomberg Terminal, SEC EDGAR filings, or other institutional sources
 4. **NEVER use web search as a primary data source** - it lacks the accuracy, audit trails, and reliability required for institutional-grade analysis
 
-**Required provenance for every externally sourced number:**
-- `source`
-- `as_of`
-- `freshness`
-- `confidence`
-- `fallback_used`
-
-**Why this matters:** SEC-first sourcing preserves auditability and consistency while keeping costs near zero.
+**Why this matters:** MCP sources provide verified, institutional-grade data with proper citations. Web search results can be outdated, inaccurate, or unreliable for financial analysis.
 
 ---
 
 ## Overview
 This skill teaches Claude to build decision-quality comparable company analyses for personal investors. The output is a structured Excel/spreadsheet that enables informed investment decisions through peer comparison.
-
-## SEC MCP Call Flow (Fundamentals)
-For each comparable company, use this call order when SEC MCP is available:
-1. `sec.resolve_company` -> map ticker to CIK
-2. `sec.get_company_facts` -> pull standardized fundamentals
-3. `sec.list_filings` -> capture latest filing date/accession for provenance
-
-If any required metric is missing:
-- mark that metric as `data unavailable`
-- lower `confidence`
-- set `fallback_used=true` only for the substituted fields
 
 **Reference Material & Contextualization:**
 
@@ -254,10 +236,10 @@ Same structure as operating section: Max, 75th, Median, 25th, Min for every metr
 ### Required Components
 
 **Data Sources & Quality:**
-- Where did the data come from? (SEC EDGAR, Twelve Data, Alpha Vantage, premium MCP optional, or documented web fallback)
+- Where did the data come from? (SEC EDGAR MCP, S&P Kensho MCP, FactSet MCP, Daloopa MCP, Bloomberg)
 - What period does it cover? (Q4 2024, audited figures)
 - How was it verified? (Cross-checked against 10-K/10-Q)
-- Note: follow this skill's hierarchy and include all required provenance fields
+- Note: Prioritize MCP data sources (SEC EDGAR, S&P Kensho, FactSet, Daloopa) if available for better accuracy and traceability
 
 **Key Definitions:**
 - EBITDA calculation method (Gross Profit + D&A, or Operating Income + D&A)
@@ -342,9 +324,9 @@ If you have more than 15 metrics, you're probably including noise. Edit ruthless
 2. **Add cell comments to ALL hard-coded inputs** - Right-click cell → Insert Comment → Document source OR assumption
 
    **For sourced data, cite exactly where it came from:**
-   - Example: "SEC 10-K FY2025, page 42, Total Revenue"
+   - Example: "Bloomberg Terminal - MSFT Equity DES, accessed 2024-10-02"
    - Example: "Q4 2024 10-K filing, page 42, line item 'Total Revenue'"
-   - Example: "Twelve Data quote endpoint, as_of 2026-03-02T14:30:00Z"
+   - Example: "FactSet consensus estimate as of 2024-10-02"
    - **Include hyperlinks when possible**: Right-click cell → Link → paste URL to SEC filing, data source, or report
 
    **For assumptions, explain the reasoning:**
@@ -425,7 +407,7 @@ This helps answer: "Is our target company trading rich or cheap vs. peers?"
    - Lock in units and date references
 
 2. **Gather data** (60-90 minutes)
-   - Pull from SEC MCP / SEC EDGAR first for fundamentals; use secondary sources only for missing non-filing fields
+   - Pull from primary sources (SEC EDGAR MCP, S&P Kensho MCP, FactSet MCP, Daloopa MCP if available; otherwise Bloomberg)
    - Input all raw numbers in blue
    - Document sources in notes section
 

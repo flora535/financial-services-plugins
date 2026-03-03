@@ -42,13 +42,6 @@ Use `skill: "dcf-model"` to:
 5. Discount cash flows and calculate terminal value
 6. Bridge to equity value and implied share price
 
-Apply the explicit data-source hierarchy in `dcf-model` for external data routing and provenance metadata:
-- `source`
-- `as_of`
-- `freshness`
-- `confidence`
-- `fallback_used`
-
 **Use comps to inform DCF assumptions:**
 
 | Comps Output | DCF Input |
