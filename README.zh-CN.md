@@ -27,6 +27,19 @@
 
 ## 数据源策略
 
+详见 [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md)。
+
+| 数据源 | 免费额度 | 已集成 | MCP | 备注 |
+|--------|----------|--------|-----|------|
+| SEC EDGAR | 无限制（限流） | ✅ | [edgartools](https://github.com/dgunning/edgartools) 内置 MCP | 10-K/10-Q/8-K 公告、XBRL 财报、内部人交易、13-F 持仓 |
+| FRED | 无限制（限流） | ✅ | [fred-mcp-server](https://github.com/stefanoamorelli/fred-mcp-server) | 80万+序列：利率、通胀、GDP、就业、信用利差 |
+| Alpha Vantage | 25次/天 | ✅ | [官方远程 MCP](https://mcp.alphavantage.co) | 行情、技术指标、基本面 |
+| NY Fed + U.S. Treasury | 无限制 | ❌ | — | SOFR、ON RRP、TGA |
+| CoinGecko | 50次/分钟 | ❌ | — | BTC/ETH 现货价格 |
+| Twelve Data | 800次/天，8只标的 | ❌ | — | 股票/加密行情 |
+| Google News RSS | 无限制 | ❌ | — | 默认新闻层 |
+| Massive API | 5次/分钟，2年历史 | ❌ | — | 可选备用 |
+
 ## 快速开始
 
 ### Cowork
@@ -45,7 +58,7 @@ claude plugin install wealth-management@financial-services-plugins
 ```
 
 ## 说明
-- 目前`financial-analysis` 已配置alphavantage官方mcp和部分免费数据源mcp 的MVP
+- `financial-analysis` 所有免费数据源优先使用上游官方 MCP。
 
 ## 贡献
 欢迎贡献，尤其是新增 **免费** 数据源 MCP 集成，以提升个人投资工作流覆盖。

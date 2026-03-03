@@ -1,21 +1,24 @@
 {
   "mcpServers": {
     "free-fed-fred": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "mcp/free-fed-fred/dist/index.js"
+        "-y",
+        "fred-mcp-server"
       ],
       "env": {
         "FRED_API_KEY": "${FRED_API_KEY}"
       }
     },
     "free-sec-edgar": {
-      "command": "node",
+      "command": "uvx",
       "args": [
-        "mcp/free-sec-edgar/dist/index.js"
+        "--from",
+        "edgartools[ai]",
+        "edgartools-mcp"
       ],
       "env": {
-        "SEC_USER_AGENT": "${SEC_USER_AGENT}"
+        "EDGAR_IDENTITY": "${SEC_USER_AGENT}"
       }
     },
     "alphavantage": {

@@ -28,6 +28,19 @@ The suite is optimized for free-source-first research and requires provenance me
 
 ## Data Source Strategy
 
+See [docs/FREE_DATA_SOURCES.md](./docs/FREE_DATA_SOURCES.md) for details.
+
+| Source | Free Quota | Integrated | MCP | Notes |
+|--------|------------|------------|-----|-------|
+| SEC EDGAR | Unlimited (rate-limited) | ✅ | [edgartools](https://github.com/dgunning/edgartools) built-in MCP | 10-K/10-Q/8-K filings, XBRL financials, insider trades, 13-F holdings |
+| FRED | Unlimited (rate-limited) | ✅ | [fred-mcp-server](https://github.com/stefanoamorelli/fred-mcp-server) | 800k+ series: rates, inflation, GDP, labor, credit spreads |
+| Alpha Vantage | 25 calls/day | ✅ | [Official remote MCP](https://mcp.alphavantage.co) | Quotes, indicators, fundamentals |
+| NY Fed + U.S. Treasury | Unlimited | ❌ | — | SOFR, ON RRP, TGA |
+| CoinGecko | 50 calls/min | ❌ | — | BTC/ETH spot prices |
+| Twelve Data | 800 calls/day, 8 symbols | ❌ | — | Stock/crypto quotes |
+| Google News RSS | Unlimited | ❌ | — | Default news layer |
+| Massive API | 5 calls/min, 2yr history | ❌ | — | Optional backup |
+
 ## Getting Started
 
 ### Cowork
@@ -46,7 +59,7 @@ claude plugin install wealth-management@financial-services-plugins
 ```
 
 ## Notes
-- Now `financial-analysis` includes aphavantage official mcp and some local free-source MCP MVPs.
+- `financial-analysis` prefers upstream MCPs for all free data sources.
 
 ## Contributing
 Contributions are welcome, especially MCP integrations for additional **free** data sources that improve coverage for personal-investor workflows.
