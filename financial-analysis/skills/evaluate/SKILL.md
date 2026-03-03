@@ -198,6 +198,40 @@ Sum 5 factor scores. Range: -10 to +10.
 - Loss >30% AND Fundamentals >= 0 → flag as "potential averaging-down opportunity"
 - If technicals skipped → widen conviction one level (High → Medium, Medium → Low)
 
+## Step 5B: Entry Price Levels
+
+**Condition:** Only compute when signal is **Hold** or **Buy More**. Skip entirely for Trim/Sell.
+
+Derive 3 entry tiers from data already collected — no additional API calls needed.
+
+### Calculation
+
+1. **Source multiples from peer set (Step 2):**
+   - Light add multiple = peer 75th percentile P/E (quality premium floor)
+   - Meaningful add multiple = peer median P/E
+   - Back up the truck multiple = peer 25th percentile P/E
+
+2. **Compute tier prices:**
+   - `tier_price = target_multiple × trailing_EPS` (EPS from Step 3A)
+
+3. **Cross-check with technicals:**
+   - Compare each tier against support levels visible in weekly price data (Step 3D)
+   - If a tier aligns within 3% of a technical support zone, note "near {50-DMA / 200-DMA / 52wk low}" in the output
+
+4. **Forward-adjusted column** (if earnings trajectory from Step 3B shows consistent growth):
+   - Estimate forward EPS growth rate from the quarterly EPS trend
+   - `tier_price_fwd = target_multiple × trailing_EPS × (1 + growth_rate)`
+   - If growth rate not determinable, omit this column
+
+5. **Discount from current price:**
+   - `discount = (current_price - tier_price) / current_price`
+
+### Adaptive Logic
+
+- **Stock already below Light add price →** shift language: "Already in buy zone — current price is below the Light add tier"
+- **All tiers above current price →** note: "Stock already trades below fair entry; consider adding now" (reinforces Buy More signal)
+- **Sector adjustment:** Use actual peer percentiles, not hardcoded multiples. The illustrative 30x/27x/23x is mega-cap tech; a bank might use 12x/10x/8x. Always derive from the peer set computed in Step 2.
+
 ## Step 6: Output
 
 Print to terminal. If user requests, also save as `{TICKER}-evaluate-{YYYY-MM-DD}.md`.
@@ -267,6 +301,23 @@ SIGNAL: {BUY MORE / HOLD / TRIM / SELL}   Conviction: {High/Med/Low}
    the strongest factors driving the decision.}
 
 ----------------------------------------------------------------
+  ENTRY PRICE LEVELS          (Hold / Buy More signals only)
+----------------------------------------------------------------
+  Based on: EPS ${eps} | Peer median P/E {peer_pe}x | EPS growth ~{g}%
+
+  Tier              Price    P/E    vs Now   Next-Yr Adj   Note
+  Light add         ${xxx}   {pe}x  -{y}%    ${xxx}        {support note}
+  Meaningful add    ${xxx}   {pe}x  -{y}%    ${xxx}        {support note}
+  Back up the truck ${xxx}   {pe}x  -{y}%    ${xxx}        {support note}
+
+  Your cost basis: ${cost}. Any add below ${light} keeps blended
+  basis attractive.
+
+  Scaling approach: Set limit orders at each tier (1/3 each).
+  Most likely catalyst for these prices: {broad market correction /
+  earnings miss / sector rotation}.
+
+----------------------------------------------------------------
   NEXT STEPS
 ----------------------------------------------------------------
   {Contextual recommendations based on signal:}
@@ -274,6 +325,8 @@ SIGNAL: {BUY MORE / HOLD / TRIM / SELL}   Conviction: {High/Med/Low}
   - "Run /financial-analysis:comps {TICKER} for full peer analysis"
   - "Run /wealth-management:tlh to execute tax-loss harvest"
   - "Run /wealth-management:rebalance to check portfolio impact"
+  - "Set limit orders at ${light} / ${meaningful} / ${truck}"
+    (Hold/Buy More only — references Entry Price Levels above)
 
 ----------------------------------------------------------------
   LIMITATIONS
@@ -295,3 +348,4 @@ Show only relevant suggestions:
 | Unrealized loss >10% | `/wealth-management:tlh` to evaluate tax-loss harvest |
 | Signal = Trim or Sell | `/wealth-management:rebalance` to check portfolio drift impact |
 | Fundamentals unclear | `/financial-analysis:3-statements` for full financial model |
+| Signal = Hold or Buy More | Show Entry Price Levels section; suggest "Set limit orders at $X / $X / $X (light / meaningful / back-up-the-truck)" |
