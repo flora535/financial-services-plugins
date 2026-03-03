@@ -45,5 +45,6 @@ coverage/
 TASKS.md
 MEMORY.md
 .claude/worktrees/
+.claude/
 AGENTS.md
 CLAUDE.md

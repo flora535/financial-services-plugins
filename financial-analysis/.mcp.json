@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "free-fed-fred": {
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "fred-mcp-server"
+        "-c",
+        "npx -y -q fred-mcp-server@1.0.2 true >/dev/null 2>&1; exec node \"$(find ~/.npm/_npx -name index.js -path '*/fred-mcp-server/build/*' 2>/dev/null | head -1)\""
       ],
       "env": {
         "FRED_API_KEY": "${FRED_API_KEY}"
@@ -36,7 +36,9 @@
     "massive": {
       "command": "uvx",
       "args": [
-        "mcp-massive"
+        "--from",
+        "mcp_massive @ git+https://github.com/massive-com/mcp_massive@v0.8.1",
+        "mcp_massive"
       ],
       "env": {
         "MASSIVE_API_KEY": "${MASSIVE_API_KEY}"
