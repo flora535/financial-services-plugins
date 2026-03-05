@@ -278,3 +278,4 @@ Show only relevant suggestions:
 | Macro = Hostile | "Monitor macro-liquidity before committing capital" |
 | On-chain data missing | "Provide MVRV/LTH from Glassnode dashboard for higher conviction" |
 | Signal = No Bottom | "Re-run in 1-2 weeks or when Fear & Greed drops below 25" |
+| Signal = No Bottom | "Run `/financial-analysis:btc-top` to check if BTC is instead near a top" |

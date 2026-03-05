@@ -423,5 +423,5 @@ Show only relevant suggestions:
 | Unrealized loss >10% | `/wealth-management:tlh` to evaluate tax-loss harvest |
 | Signal = Trim or Sell | `/wealth-management:rebalance` to check portfolio drift impact |
 | Fundamentals unclear | `/financial-analysis:3-statements` for full financial model |
-| Asset = BTC/crypto | `/financial-analysis:btc-bottom` for cycle-bottom analysis |
+| Asset = BTC/crypto | `/financial-analysis:btc-bottom` for cycle-bottom; `/financial-analysis:btc-top` for cycle-top |
 | Signal = Hold or Buy More | Show Entry Price Levels section; suggest "Set limit orders at $X / $X / $X (light / meaningful / back-up-the-truck)" |
