@@ -35,6 +35,25 @@ Follow the same priority established in comps-analysis and dcf-model:
 
 If holding period not given, show both short-term and long-term tax implications.
 
+## Step 1B: Timeliness Gate
+
+Before any analysis, verify data freshness. Run this **before** Steps 2-3.
+
+1. Record today's date
+2. As each data source returns in Steps 2-3, check the timestamp/period of the data
+3. Apply staleness thresholds:
+
+| Data Type | Stale If Older Than | Action |
+|-----------|-------------------|--------|
+| Quote / price | 3 trading days | Re-query; if still stale, warn + cap conviction at Medium |
+| Quarterly financials | 120 days from last fiscal quarter end | Warn "awaiting next earnings" |
+| Insider transactions | 90 days (built into query) | OK by design |
+| Technical indicators | 3 trading days | Re-query; if stale, skip technicals |
+| FRED macro series | 7 days | Acceptable — macro moves slowly |
+
+4. If **2+ data sources** are stale after re-query → cap conviction at **Low** regardless of composite score
+5. List all staleness warnings in the output's DATA FRESHNESS section
+
 ## Step 2: Peer Context (Lightweight Comps)
 
 Run a **quick version** of the comps-analysis workflow — 3-4 peers, core multiples only.
@@ -57,7 +76,7 @@ If `edgar_compare` is unavailable, fall back to individual `edgar_company` calls
 
 ## Step 3: Target Company Data
 
-Fetch in parallel where possible. Target ~8-9 total API calls.
+Fetch in parallel where possible. Target ~10-11 total API calls.
 
 ### 3A: Price & Fundamentals — Massive API (primary)
 
@@ -110,8 +129,23 @@ If neither available, skip technicals and reduce conviction one level.
 
 ### 3E: Macro Context — FRED
 
-Use `fred_get_series`:
-- `series_id`: `"DGS10"` — 10-year Treasury yield (opportunity cost benchmark)
+Use `fred_get_series` for each (3 calls, all parallelizable):
+
+| Series ID | What | Why |
+|-----------|------|-----|
+| `DGS10` | 10-year Treasury yield | Opportunity cost benchmark |
+| `T10Y2Y` | 10Y-2Y Treasury spread | Yield curve inversion = recession signal |
+| `BAMLH0A0HYM2` | ICE BofA High Yield spread | Credit stress — widens before equity selloffs |
+
+Derive a **macro backdrop** label from the combination:
+
+| Condition | Backdrop |
+|-----------|----------|
+| 10Y falling + spread positive + HY spread narrowing | 🟢 Supportive |
+| Mixed signals or stable readings | 🟡 Neutral |
+| 10Y rising sharply OR spread inverted OR HY spread >500bp | 🔴 Hostile |
+
+Use the macro backdrop in the REASONING section — it contextualizes whether the environment supports the signal.
 
 ## Step 4: Score 5 Factors
 
@@ -198,6 +232,19 @@ Sum 5 factor scores. Range: -10 to +10.
 - Loss >30% AND Fundamentals >= 0 → flag as "potential averaging-down opportunity"
 - If technicals skipped → widen conviction one level (High → Medium, Medium → Low)
 
+### Missing-Data Conviction Caps
+
+Count the number of factors scored as 0 **due to missing data** (not because the data was neutral).
+
+| Missing Factors | Max Conviction | Note |
+|----------------|---------------|------|
+| 0 | High | Full data — score as normal |
+| 1 | High | Acceptable — note which factor in Limitations |
+| 2 | Medium | Flag: "Conviction capped — insufficient data for {factors}" |
+| 3+ | Low | Flag: "Low confidence evaluation — consider waiting for data" |
+
+This stacks with the Timeliness Gate cap: final conviction = **min(score-based, staleness cap, missing-data cap)**.
+
 ## Step 5B: Entry Price Levels
 
 **Condition:** Only compute when signal is **Hold** or **Buy More**. Skip entirely for Trim/Sell.
@@ -232,6 +279,15 @@ Derive 3 entry tiers from data already collected — no additional API calls nee
 - **All tiers above current price →** note: "Stock already trades below fair entry; consider adding now" (reinforces Buy More signal)
 - **Sector adjustment:** Use actual peer percentiles, not hardcoded multiples. The illustrative 30x/27x/23x is mega-cap tech; a bank might use 12x/10x/8x. Always derive from the peer set computed in Step 2.
 
+## Step 5C: Pre-Mortem
+
+After scoring, force one falsification exercise:
+
+> "If this position loses 30%+ in the next 12 months, the most likely cause is: ___"
+
+Derive the answer from the **lowest-scoring factor** and any macro backdrop = 🔴 Hostile.
+Output as a single sentence in the PRE-MORTEM section. This is mandatory — never skip it.
+
 ## Step 6: Output
 
 Print to terminal. If user requests, also save as `{TICKER}-evaluate-{YYYY-MM-DD}.md`.
@@ -242,6 +298,16 @@ Print to terminal. If user requests, also save as `{TICKER}-evaluate-{YYYY-MM-DD
 ================================================================
 
 SIGNAL: {BUY MORE / HOLD / TRIM / SELL}   Conviction: {High/Med/Low}
+{if conviction was capped: "(capped from {original} — {reason})"}
+
+----------------------------------------------------------------
+  DATA FRESHNESS
+----------------------------------------------------------------
+  Quote:        {date}  {✅ / ⚠️ stale}
+  Financials:   {quarter} filed {date}  {✅ / ⚠️ awaiting next earnings}
+  Technicals:   {date}  {✅ / ⚠️ stale / ⛔ unavailable}
+  Macro (FRED): {date}  {✅}
+  {if any staleness: "⚠️ Conviction capped at {level} due to stale data"}
 
 ----------------------------------------------------------------
   YOUR POSITION
@@ -276,6 +342,9 @@ SIGNAL: {BUY MORE / HOLD / TRIM / SELL}   Conviction: {High/Med/Low}
   RSI (14d):     {rsi}   MACD: {bullish/bearish}
   Div Yield:     {yield}%
   10Y Treasury:  {rate}%
+  Yield Curve:   {T10Y2Y spread}  {normal/flat/inverted}
+  HY Spread:     {spread}bp  {tight/normal/wide}
+  Macro Backdrop: {🟢 Supportive / 🟡 Neutral / 🔴 Hostile}
 
 ----------------------------------------------------------------
   PEER CONTEXT
@@ -299,6 +368,12 @@ SIGNAL: {BUY MORE / HOLD / TRIM / SELL}   Conviction: {High/Med/Low}
   {2-4 sentences synthesizing factor scores into a coherent
    narrative. Explain WHY the signal is what it is. Reference
    the strongest factors driving the decision.}
+
+----------------------------------------------------------------
+  PRE-MORTEM
+----------------------------------------------------------------
+  If this position loses 30%+ in 12 months, the most likely
+  cause is: {one sentence derived from weakest factor + macro}
 
 ----------------------------------------------------------------
   ENTRY PRICE LEVELS          (Hold / Buy More signals only)
@@ -348,4 +423,5 @@ Show only relevant suggestions:
 | Unrealized loss >10% | `/wealth-management:tlh` to evaluate tax-loss harvest |
 | Signal = Trim or Sell | `/wealth-management:rebalance` to check portfolio drift impact |
 | Fundamentals unclear | `/financial-analysis:3-statements` for full financial model |
+| Asset = BTC/crypto | `/financial-analysis:btc-bottom` for cycle-bottom analysis |
 | Signal = Hold or Buy More | Show Entry Price Levels section; suggest "Set limit orders at $X / $X / $X (light / meaningful / back-up-the-truck)" |
