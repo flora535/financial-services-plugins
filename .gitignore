@@ -31,6 +31,9 @@ target/
 *.key
 *.pem
 
+# Local portfolio data
+financial-analysis/data/*
+
 # Testing
 coverage/
 .coverage

@@ -46,6 +46,21 @@
         "MASSIVE_API_KEY": "${MASSIVE_API_KEY}"
       }
     },
+    "ibkr-asset-monitor": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "uv run --with mcp --with ib_async python financial-analysis/mcp/ibkr_asset_monitor_server.py"
+      ],
+      "env": {
+        "IBKR_HOST": "${IBKR_HOST}",
+        "IBKR_PORT": "${IBKR_PORT}",
+        "IBKR_CLIENT_ID": "${IBKR_CLIENT_ID}",
+        "IBKR_TIMEOUT_SECONDS": "${IBKR_TIMEOUT_SECONDS}",
+        "IBKR_READ_ONLY": "${IBKR_READ_ONLY}",
+        "ASSET_MONITOR_OFFLINE_PATH": "${ASSET_MONITOR_OFFLINE_PATH}"
+      }
+    },
     "daloopa": {
       "type": "http",
       "url": "https://mcp.daloopa.com/server/mcp"
