@@ -86,9 +86,19 @@ Parse JSON response → extract `value` (0-100) and `value_classification`.
 
 Also fetch `?limit=14` to check if Fear & Greed has been >80 for 2+ weeks (sustained euphoria).
 
-### 3D: On-chain Metrics — User Input or Web Search
+### 3D: On-chain Metrics — Glassnode MCP (if available), User Input, or Web Search
 
-For each metric not provided by user, attempt web search:
+For each metric not provided by user, try this order:
+1. Glassnode MCP `fetch_metric` (if MCP configured)
+2. User-provided value
+3. Web search fallback
+
+Notes:
+- Do not assume Glassnode public mode always includes required metrics.
+- In public/no-key mode, historical range may be limited (commonly 30 days).
+- If MVRV/NUPL/LTH query fails or returns empty, mark as unavailable and continue.
+
+Web search fallback patterns:
 - **MVRV ratio**: search `"Bitcoin MVRV ratio" site:glassnode.com OR site:cryptoquant.com OR site:lookintobitcoin.com`
 - **NUPL**: search `"Bitcoin NUPL" site:glassnode.com OR site:cryptoquant.com OR site:lookintobitcoin.com`
 - **LTH Supply ratio**: search `"Bitcoin long term holder supply" site:glassnode.com OR site:cryptoquant.com`
@@ -105,12 +115,20 @@ Search for recent Bitcoin ETF flow data:
 - Need: last 2 weeks of daily net flow data
 - Classify: net inflows / declining inflows / net outflows
 
-### 3F: Funding Rate — Web Search
+### 3F: Funding Rate + Derivatives Sentiment — OKX Public API (Deterministic)
 
-Search for perpetual futures funding rate:
-- Search `"Bitcoin perpetual funding rate" site:coinglass.com`
-- Need: current 8-hour average funding rate
-- Also compute annualized rate for context
+Use OKX public endpoints (no auth required) instead of web search:
+- Funding (current): `GET https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP`
+- Funding history (8h cadence): `GET https://www.okx.com/api/v5/public/funding-rate-history?instId=BTC-USDT-SWAP&limit=21`
+  - Use latest value as current 8h rate
+  - Use last 21 points (~7 days) to detect sustained high funding
+  - Annualized funding = `funding_8h * 3 * 365`
+
+Optional derivatives context (non-scored unless user asks to include):
+- Long/short account ratio: `GET https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=BTC&period=1H`
+- Open interest snapshot: `GET https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP`
+
+If OKX returns non-zero code or empty data, mark funding as `data unavailable` and apply missing-data caps.
 
 ### 3G: Macro Context — FRED
 

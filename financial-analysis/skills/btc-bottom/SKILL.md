@@ -78,9 +78,19 @@ GET https://api.alternative.me/fng/
 
 Parse JSON response -> extract `value` (0-100) and `value_classification`.
 
-### 3D: On-chain Metrics — User Input or Web Search
+### 3D: On-chain Metrics — Glassnode MCP (if available), User Input, or Web Search
 
-For each metric not provided by user, attempt web search:
+For each metric not provided by user, try this order:
+1. Glassnode MCP `fetch_metric` (if MCP configured)
+2. User-provided value
+3. Web search fallback
+
+Notes:
+- Do not assume Glassnode public mode always includes required metrics.
+- In public/no-key mode, historical range may be limited (commonly 30 days).
+- If MVRV/LTH/miner-cost metric query fails or returns empty, mark as unavailable and continue.
+
+Web search fallback patterns:
 - **MVRV ratio**: search `"Bitcoin MVRV ratio" site:glassnode.com OR site:cryptoquant.com OR site:lookintobitcoin.com`
 - **LTH Supply ratio**: search `"Bitcoin long term holder supply" site:glassnode.com OR site:cryptoquant.com`
 - **Miner breakeven price**: search `"Bitcoin miner breakeven cost" site:glassnode.com OR site:cryptoquant.com OR site:hashrateindex.com`
@@ -106,6 +116,16 @@ Derive macro backdrop:
 | 10Y falling + spread positive + HY spread narrowing | Supportive |
 | Mixed signals or stable readings | Neutral |
 | 10Y rising sharply OR spread inverted OR HY spread >500bp | Hostile |
+
+### 3F: Funding + Derivatives Context — OKX Public API (Deterministic, optional)
+
+Use OKX public endpoints when derivatives context is needed (no auth):
+- Funding (current): `GET https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP`
+- Funding history: `GET https://www.okx.com/api/v5/public/funding-rate-history?instId=BTC-USDT-SWAP&limit=21`
+- Long/short ratio: `GET https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=BTC&period=1H`
+- Open interest: `GET https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP`
+
+Do not add these as extra scored indicators by default; use as confidence context only.
 
 ## Step 4: Score 6 Indicators
 
