@@ -7,6 +7,9 @@ Tools:
 - get_quotes
 - get_fx_rates
 - get_normalized_portfolio
+- get_open_orders
+- get_recent_trades
+- get_order_status
 """
 
 from __future__ import annotations
@@ -120,6 +123,21 @@ def _contract_from_spec(spec: dict[str, Any]) -> Contract:
     if primary_exchange:
         contract.primaryExchange = str(primary_exchange).strip().upper()
     return contract
+
+
+def _contract_payload(contract: Any) -> dict[str, Any]:
+    exchange = getattr(contract, "primaryExchange", None) or getattr(contract, "exchange", None)
+    return {
+        "symbol": getattr(contract, "symbol", None),
+        "sec_type": getattr(contract, "secType", None),
+        "exchange": getattr(contract, "exchange", None),
+        "primary_exchange": getattr(contract, "primaryExchange", None),
+        "currency": getattr(contract, "currency", None),
+        "con_id": getattr(contract, "conId", None),
+        "local_symbol": getattr(contract, "localSymbol", None),
+        "trading_class": getattr(contract, "tradingClass", None),
+        "ticker_normalized": _normalize_ticker(getattr(contract, "symbol", None), exchange),
+    }
 
 
 def _ticker_price(ticker: Any) -> float | None:
@@ -402,6 +420,192 @@ def get_normalized_portfolio(
         "offline_assets_path": used_offline_path,
         "total_market_value_base": total_base_value,
         "positions": rows,
+    }
+
+
+@mcp.tool()
+def get_open_orders(account: str | None = None) -> dict[str, Any]:
+    """Return currently open IBKR orders (read-only).
+
+    Each row includes both `order_id` and `perm_id`.
+    Prefer `perm_id` for cross-session/cross-client tracking.
+    """
+    ib = _connect_ib()
+    trades = list(ib.reqAllOpenOrders())
+
+    rows: list[dict[str, Any]] = []
+    for trade in trades:
+        order = trade.order
+        status = trade.orderStatus
+        acct = getattr(order, "account", None)
+        if account and acct != account:
+            continue
+
+        payload = {
+            "account": acct,
+            "order_id": getattr(order, "orderId", None),
+            "perm_id": getattr(order, "permId", None),
+            "client_id": getattr(order, "clientId", None),
+            "action": getattr(order, "action", None),
+            "order_type": getattr(order, "orderType", None),
+            "total_quantity": _as_float(getattr(order, "totalQuantity", None)),
+            "limit_price": _as_float(getattr(order, "lmtPrice", None)),
+            "aux_price": _as_float(getattr(order, "auxPrice", None)),
+            "tif": getattr(order, "tif", None),
+            "outside_rth": getattr(order, "outsideRth", None),
+            "status": getattr(status, "status", None),
+            "filled": _as_float(getattr(status, "filled", None)),
+            "remaining": _as_float(getattr(status, "remaining", None)),
+            "avg_fill_price": _as_float(getattr(status, "avgFillPrice", None)),
+            "last_fill_price": _as_float(getattr(status, "lastFillPrice", None)),
+            "why_held": getattr(status, "whyHeld", None),
+            "mkt_cap_price": _as_float(getattr(status, "mktCapPrice", None)),
+            "contract": _contract_payload(trade.contract),
+        }
+        rows.append(payload)
+
+    rows.sort(key=lambda r: ((r.get("perm_id") or 0), (r.get("order_id") or 0)), reverse=True)
+    return {
+        "as_of_utc": _now_iso(),
+        "count": len(rows),
+        "open_orders": rows,
+    }
+
+
+@mcp.tool()
+def get_recent_trades(limit: int = 50, account: str | None = None) -> dict[str, Any]:
+    """Return recent fills/executions known by the current IBKR session.
+
+    Each execution includes both `order_id` and `perm_id`.
+    Prefer `perm_id` for durable reconciliation.
+    """
+    if limit <= 0:
+        raise ValueError("limit must be > 0")
+    limit = min(limit, 500)
+
+    ib = _connect_ib()
+    fills = ib.fills()
+
+    rows: list[dict[str, Any]] = []
+    for fill in fills:
+        execution = fill.execution
+        contract = fill.contract
+        commission = fill.commissionReport
+        acct = getattr(execution, "acctNumber", None)
+        if account and acct != account:
+            continue
+
+        rows.append(
+            {
+                "account": acct,
+                "exec_id": getattr(execution, "execId", None),
+                "order_id": getattr(execution, "orderId", None),
+                "perm_id": getattr(execution, "permId", None),
+                "side": getattr(execution, "side", None),
+                "shares": _as_float(getattr(execution, "shares", None)),
+                "price": _as_float(getattr(execution, "price", None)),
+                "time": str(getattr(execution, "time", "")) or None,
+                "commission": _as_float(getattr(commission, "commission", None)),
+                "commission_currency": getattr(commission, "currency", None),
+                "realized_pnl": _as_float(getattr(commission, "realizedPNL", None)),
+                "contract": _contract_payload(contract),
+            }
+        )
+
+    rows.sort(key=lambda r: r.get("time") or "", reverse=True)
+    limited = rows[:limit]
+    return {
+        "as_of_utc": _now_iso(),
+        "count": len(limited),
+        "total_available": len(rows),
+        "recent_trades": limited,
+    }
+
+
+@mcp.tool()
+def get_order_status(order_id: int | None = None, perm_id: int | None = None) -> dict[str, Any]:
+    """Return detailed status for one order by `order_id` or `perm_id`.
+
+    Prefer `perm_id` when available.
+    """
+    if order_id is None and perm_id is None:
+        raise ValueError("Provide order_id or perm_id")
+
+    ib = _connect_ib()
+
+    if perm_id is not None:
+        # Prefetch broader open-order universe for cross-client visibility.
+        ib.reqAllOpenOrders()
+
+    trade_match = None
+    for trade in ib.trades():
+        t_order_id = getattr(trade.order, "orderId", None)
+        t_perm_id = getattr(trade.order, "permId", None)
+        if (order_id is not None and t_order_id == order_id) or (perm_id is not None and t_perm_id == perm_id):
+            trade_match = trade
+            break
+
+    if trade_match is None:
+        return {
+            "as_of_utc": _now_iso(),
+            "found": False,
+            "order_id": order_id,
+            "perm_id": perm_id,
+            "message": "Order ID not found in current session cache.",
+        }
+
+    order = trade_match.order
+    status = trade_match.orderStatus
+    log_rows: list[dict[str, Any]] = []
+    for entry in getattr(trade_match, "log", []):
+        log_rows.append(
+            {
+                "time": str(getattr(entry, "time", "")) or None,
+                "status": getattr(entry, "status", None),
+                "message": getattr(entry, "message", None),
+                "error_code": getattr(entry, "errorCode", None),
+            }
+        )
+
+    fill_rows: list[dict[str, Any]] = []
+    for fill in getattr(trade_match, "fills", []):
+        execution = fill.execution
+        commission = fill.commissionReport
+        fill_rows.append(
+            {
+                "exec_id": getattr(execution, "execId", None),
+                "time": str(getattr(execution, "time", "")) or None,
+                "side": getattr(execution, "side", None),
+                "shares": _as_float(getattr(execution, "shares", None)),
+                "price": _as_float(getattr(execution, "price", None)),
+                "commission": _as_float(getattr(commission, "commission", None)),
+                "commission_currency": getattr(commission, "currency", None),
+                "realized_pnl": _as_float(getattr(commission, "realizedPNL", None)),
+            }
+        )
+
+    return {
+        "as_of_utc": _now_iso(),
+        "found": True,
+        "order_id": getattr(order, "orderId", None),
+        "perm_id": getattr(order, "permId", None),
+        "account": getattr(order, "account", None),
+        "client_id": getattr(order, "clientId", None),
+        "action": getattr(order, "action", None),
+        "order_type": getattr(order, "orderType", None),
+        "total_quantity": _as_float(getattr(order, "totalQuantity", None)),
+        "limit_price": _as_float(getattr(order, "lmtPrice", None)),
+        "aux_price": _as_float(getattr(order, "auxPrice", None)),
+        "tif": getattr(order, "tif", None),
+        "status": getattr(status, "status", None),
+        "filled": _as_float(getattr(status, "filled", None)),
+        "remaining": _as_float(getattr(status, "remaining", None)),
+        "avg_fill_price": _as_float(getattr(status, "avgFillPrice", None)),
+        "last_fill_price": _as_float(getattr(status, "lastFillPrice", None)),
+        "why_held": getattr(status, "whyHeld", None),
+        "contract": _contract_payload(trade_match.contract),
+        "fills": fill_rows,
+        "log": log_rows,
     }
 
 
