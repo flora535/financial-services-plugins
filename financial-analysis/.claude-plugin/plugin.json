@@ -1,6 +1,6 @@
 {
   "name": "financial-analysis",
-  "version": "0.5.1"
+  "version": "0.5.2",
   "description": "Personal-investor analysis tools: DCF, comps, 3-statement modeling, crypto cycle analysis, and decision support.",
   "author": {
     "name": "Anthropic FSI"
