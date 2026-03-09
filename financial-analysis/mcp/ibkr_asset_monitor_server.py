@@ -10,17 +10,18 @@ Tools:
 - get_open_orders
 - get_recent_trades
 - get_order_status
+- get_broker_state
 """
 
 from __future__ import annotations
 
+import json
+import logging
 import math
 import os
-import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import json
 
 from mcp.server.fastmcp import FastMCP
 
@@ -41,6 +42,21 @@ logging.getLogger("ib_async.client").setLevel(logging.WARNING)
 logging.getLogger("ib_async.wrapper").setLevel(logging.WARNING)
 
 
+ACCOUNT_SUMMARY_NORMALIZED_TAGS = {
+    "cash": "TotalCashValue",
+    "net_liquidation": "NetLiquidation",
+    "buying_power": "BuyingPower",
+    "available_funds": "AvailableFunds",
+    "excess_liquidity": "ExcessLiquidity",
+    "initial_margin_requirement": "InitMarginReq",
+    "maintenance_margin_requirement": "MaintMarginReq",
+    "gross_position_value": "GrossPositionValue",
+    "equity_with_loan_value": "EquityWithLoanValue",
+    "lookahead_available_funds": "LookAheadAvailableFunds",
+    "lookahead_excess_liquidity": "LookAheadExcessLiquidity",
+}
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -52,6 +68,12 @@ def _is_finite(value: Any) -> bool:
 def _as_float(value: Any) -> float | None:
     if _is_finite(value):
         return float(value)
+    if isinstance(value, str):
+        try:
+            parsed = float(value)
+        except ValueError:
+            return None
+        return parsed if math.isfinite(parsed) else None
     return None
 
 
@@ -73,6 +95,11 @@ def _get_env_float(name: str, default: float) -> float:
     if raw is None or raw.strip() == "":
         return default
     return float(raw)
+
+
+def _offline_snapshot_path(path_override: str | None) -> Path:
+    default_path = Path("financial-analysis/data/offline-assets.json")
+    return Path(path_override or os.getenv("ASSET_MONITOR_OFFLINE_PATH", str(default_path)))
 
 
 def _connect_ib() -> IB:
@@ -153,16 +180,22 @@ def _ticker_price(ticker: Any) -> float | None:
     return None
 
 
-def _load_offline_assets(path_override: str | None) -> tuple[list[dict[str, Any]], str | None]:
-    default_path = Path("financial-analysis/data/offline-assets.json")
-    path = Path(path_override or os.getenv("ASSET_MONITOR_OFFLINE_PATH", str(default_path)))
+def _load_offline_assets(path_override: str | None) -> tuple[dict[str, Any] | None, str | None]:
+    path = _offline_snapshot_path(path_override)
     if not path.exists():
-        return [], None
+        return None, None
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, list):
-        raise ValueError("Offline assets file must be a JSON array")
+    if not isinstance(payload, dict):
+        raise ValueError("Offline snapshot file must be a broker-state JSON object")
     return payload, str(path)
+
+
+def _write_offline_snapshot(snapshot: dict[str, Any], path_override: str | None) -> str:
+    path = _offline_snapshot_path(path_override)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snapshot, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    return str(path)
 
 
 def _fx_rates_to_base(ib: IB, currencies: set[str], base_currency: str) -> dict[str, float]:
@@ -189,6 +222,310 @@ def _fx_rates_to_base(ib: IB, currencies: set[str], base_currency: str) -> dict[
             rates[ccy.upper()] = 1.0 / inv_px
 
     return rates
+
+
+def _raw_account_summary(ib: IB, account: str | None) -> dict[str, dict[str, dict[str, str]]]:
+    rows = ib.accountSummary(account) if account else ib.accountSummary()
+
+    summary: dict[str, dict[str, dict[str, str]]] = {}
+    for row in rows:
+        acct = row.account
+        if acct not in summary:
+            summary[acct] = {}
+        summary[acct][row.tag] = {
+            "value": row.value,
+            "currency": row.currency,
+        }
+    return summary
+
+
+def _normalized_account_summary(raw_summary: dict[str, dict[str, str]]) -> dict[str, dict[str, Any]]:
+    normalized: dict[str, dict[str, Any]] = {}
+    for field, tag in ACCOUNT_SUMMARY_NORMALIZED_TAGS.items():
+        raw = raw_summary.get(tag)
+        normalized[field] = {
+            "tag": tag,
+            "value": _as_float(raw.get("value")) if raw else None,
+            "currency": raw.get("currency") if raw else None,
+        }
+    return normalized
+
+
+def _account_payloads(ib: IB, account: str | None) -> list[dict[str, Any]]:
+    raw_summary = _raw_account_summary(ib, account)
+    accounts: list[dict[str, Any]] = []
+
+    for acct in sorted(raw_summary):
+        raw = raw_summary[acct]
+        accounts.append(
+            {
+                "account": acct,
+                "summary_normalized": _normalized_account_summary(raw),
+                "summary_raw": raw,
+            }
+        )
+
+    return accounts
+
+
+def _live_positions(ib: IB, account: str | None) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    portfolio_items = ib.portfolio(account) if account else ib.portfolio()
+
+    for item in portfolio_items:
+        contract = item.contract
+        market_value = _as_float(getattr(item, "marketValue", None))
+        if market_value is None:
+            position = _as_float(getattr(item, "position", None)) or 0.0
+            market_price = _as_float(getattr(item, "marketPrice", None)) or 0.0
+            market_value = position * market_price
+
+        contract_payload = _contract_payload(contract)
+        rows.append(
+            {
+                "source": "live_ibkr",
+                "account": getattr(item, "account", None),
+                "contract": contract_payload,
+                "ticker_normalized": contract_payload["ticker_normalized"],
+                "currency": getattr(contract, "currency", None),
+                "quantity": _as_float(getattr(item, "position", None)),
+                "price": _as_float(getattr(item, "marketPrice", None)),
+                "average_cost": _as_float(getattr(item, "averageCost", None)),
+                "market_value": market_value,
+                "unrealized_pnl": _as_float(getattr(item, "unrealizedPNL", None)),
+                "realized_pnl": _as_float(getattr(item, "realizedPNL", None)),
+            }
+        )
+
+    return rows
+
+
+def _open_orders_payload(ib: IB, account: str | None) -> list[dict[str, Any]]:
+    trades = list(ib.reqAllOpenOrders())
+
+    rows: list[dict[str, Any]] = []
+    for trade in trades:
+        order = trade.order
+        status = trade.orderStatus
+        acct = getattr(order, "account", None)
+        if account and acct != account:
+            continue
+
+        rows.append(
+            {
+                "account": acct,
+                "order_id": getattr(order, "orderId", None),
+                "perm_id": getattr(order, "permId", None),
+                "client_id": getattr(order, "clientId", None),
+                "action": getattr(order, "action", None),
+                "order_type": getattr(order, "orderType", None),
+                "total_quantity": _as_float(getattr(order, "totalQuantity", None)),
+                "limit_price": _as_float(getattr(order, "lmtPrice", None)),
+                "aux_price": _as_float(getattr(order, "auxPrice", None)),
+                "tif": getattr(order, "tif", None),
+                "outside_rth": getattr(order, "outsideRth", None),
+                "status": getattr(status, "status", None),
+                "filled": _as_float(getattr(status, "filled", None)),
+                "remaining": _as_float(getattr(status, "remaining", None)),
+                "avg_fill_price": _as_float(getattr(status, "avgFillPrice", None)),
+                "last_fill_price": _as_float(getattr(status, "lastFillPrice", None)),
+                "why_held": getattr(status, "whyHeld", None),
+                "mkt_cap_price": _as_float(getattr(status, "mktCapPrice", None)),
+                "contract": _contract_payload(trade.contract),
+            }
+        )
+
+    rows.sort(key=lambda r: ((r.get("perm_id") or 0), (r.get("order_id") or 0)), reverse=True)
+    return rows
+
+
+def _recent_trades_payload(ib: IB, limit: int, account: str | None) -> list[dict[str, Any]]:
+    if limit <= 0:
+        raise ValueError("limit must be > 0")
+    limit = min(limit, 500)
+
+    fills = ib.fills()
+
+    rows: list[dict[str, Any]] = []
+    for fill in fills:
+        execution = fill.execution
+        contract = fill.contract
+        commission = fill.commissionReport
+        acct = getattr(execution, "acctNumber", None)
+        if account and acct != account:
+            continue
+
+        rows.append(
+            {
+                "account": acct,
+                "exec_id": getattr(execution, "execId", None),
+                "order_id": getattr(execution, "orderId", None),
+                "perm_id": getattr(execution, "permId", None),
+                "side": getattr(execution, "side", None),
+                "shares": _as_float(getattr(execution, "shares", None)),
+                "price": _as_float(getattr(execution, "price", None)),
+                "time": str(getattr(execution, "time", "")) or None,
+                "commission": _as_float(getattr(commission, "commission", None)),
+                "commission_currency": getattr(commission, "currency", None),
+                "realized_pnl": _as_float(getattr(commission, "realizedPNL", None)),
+                "contract": _contract_payload(contract),
+            }
+        )
+
+    rows.sort(key=lambda r: r.get("time") or "", reverse=True)
+    return rows[:limit]
+
+
+def _snapshot_fx_rate(
+    fx_rates: dict[str, float],
+    from_currency: str | None,
+    to_currency: str,
+) -> float | None:
+    source = (from_currency or to_currency).upper()
+    target = to_currency.upper()
+    if source == target:
+        return 1.0
+
+    source_to_snapshot = _as_float(fx_rates.get(source))
+    target_to_snapshot = _as_float(fx_rates.get(target))
+    if source_to_snapshot is None or target_to_snapshot is None or target_to_snapshot == 0:
+        return None
+    return source_to_snapshot / target_to_snapshot
+
+
+def _finalize_position_rows(rows: list[dict[str, Any]], fx_rates: dict[str, float], base_currency: str) -> tuple[list[dict[str, Any]], float]:
+    total_base_value = 0.0
+    base = base_currency.upper()
+
+    for row in rows:
+        currency = str(row.get("currency") or base).upper()
+        rate = _snapshot_fx_rate(fx_rates, currency, base)
+        row["fx_to_base"] = rate
+
+        market_value = _as_float(row.get("market_value"))
+        if rate is None or market_value is None:
+            row["market_value_base"] = None
+            continue
+
+        market_value_base = market_value * rate
+        row["market_value_base"] = market_value_base
+        total_base_value += market_value_base
+
+    for row in rows:
+        market_value_base = _as_float(row.get("market_value_base"))
+        row["portfolio_weight"] = (
+            market_value_base / total_base_value if (market_value_base is not None and total_base_value > 0) else None
+        )
+
+    rows.sort(key=lambda r: abs(_as_float(r.get("market_value_base")) or 0.0), reverse=True)
+    return rows, total_base_value
+
+
+def _build_live_broker_state(
+    ib: IB,
+    base_currency: str,
+    account: str | None,
+    recent_trades_limit: int,
+) -> dict[str, Any]:
+    base = base_currency.upper().strip()
+    positions = _live_positions(ib, account)
+    accounts = _account_payloads(ib, account)
+    orders_open = _open_orders_payload(ib, account)
+    trades_recent = _recent_trades_payload(ib, recent_trades_limit, account)
+
+    currencies = {base}
+    currencies.update(str(position.get("currency") or base).upper() for position in positions)
+    for account_payload in accounts:
+        for field in account_payload.get("summary_normalized", {}).values():
+            currency = field.get("currency")
+            if currency:
+                currencies.add(str(currency).upper())
+
+    fx_rates = _fx_rates_to_base(ib, currencies, base)
+    positions, total_market_value_base = _finalize_position_rows(positions, fx_rates, base)
+
+    return {
+        "as_of_utc": _now_iso(),
+        "snapshot_source": "live_ibkr",
+        "broker": "ibkr",
+        "base_currency": base,
+        "accounts": accounts,
+        "positions": positions,
+        "orders_open": orders_open,
+        "trades_recent": trades_recent,
+        "fx_rates": fx_rates,
+        "metadata": {
+            "account_filter": account,
+            "recent_trades_limit": recent_trades_limit,
+            "position_count": len(positions),
+            "open_order_count": len(orders_open),
+            "recent_trade_count": len(trades_recent),
+            "total_market_value_base": total_market_value_base,
+        },
+    }
+
+
+def _filter_snapshot_for_account(snapshot: dict[str, Any], account: str | None) -> dict[str, Any]:
+    if not account:
+        return snapshot
+
+    filtered = {
+        **snapshot,
+        "accounts": [row for row in snapshot.get("accounts", []) if row.get("account") == account],
+        "positions": [row for row in snapshot.get("positions", []) if row.get("account") == account],
+        "orders_open": [row for row in snapshot.get("orders_open", []) if row.get("account") == account],
+        "trades_recent": [row for row in snapshot.get("trades_recent", []) if row.get("account") == account],
+    }
+    metadata = dict(snapshot.get("metadata", {}))
+    metadata["account_filter"] = account
+    filtered["metadata"] = metadata
+    return filtered
+
+
+def _rebase_snapshot(snapshot: dict[str, Any], base_currency: str) -> dict[str, Any]:
+    target_base = base_currency.upper().strip()
+    current_base = str(snapshot.get("base_currency") or "USD").upper()
+    if target_base == current_base:
+        return snapshot
+
+    fx_rates = snapshot.get("fx_rates") or {}
+    if target_base not in fx_rates:
+        raise ValueError(
+            f"Offline snapshot cannot be rebased to {target_base}; missing FX rate in snapshot payload"
+        )
+
+    rebased = {
+        **snapshot,
+        "base_currency": target_base,
+        "accounts": json.loads(json.dumps(snapshot.get("accounts", []))),
+        "positions": json.loads(json.dumps(snapshot.get("positions", []))),
+        "orders_open": json.loads(json.dumps(snapshot.get("orders_open", []))),
+        "trades_recent": json.loads(json.dumps(snapshot.get("trades_recent", []))),
+    }
+
+    rebased_fx_rates: dict[str, float] = {target_base: 1.0}
+    for currency in fx_rates:
+        rate = _snapshot_fx_rate(fx_rates, currency, target_base)
+        if rate is not None:
+            rebased_fx_rates[currency] = rate
+    rebased["fx_rates"] = rebased_fx_rates
+
+    positions, total_market_value_base = _finalize_position_rows(
+        rebased.get("positions", []), rebased_fx_rates, target_base
+    )
+    rebased["positions"] = positions
+
+    metadata = dict(rebased.get("metadata", {}))
+    metadata["total_market_value_base"] = total_market_value_base
+    rebased["metadata"] = metadata
+    return rebased
+
+
+def _offline_positions_from_snapshot(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    positions = snapshot.get("positions", [])
+    if not isinstance(positions, list):
+        raise ValueError("Offline snapshot positions must be a JSON array")
+    return json.loads(json.dumps(positions))
 
 
 @mcp.tool()
@@ -227,17 +564,7 @@ def get_positions(account: str | None = None) -> dict[str, Any]:
 def get_account_summary(account: str | None = None) -> dict[str, Any]:
     """Return account summary metrics (cash, net liquidation, buying power, margin tags)."""
     ib = _connect_ib()
-    rows = ib.accountSummary(account) if account else ib.accountSummary()
-
-    summary: dict[str, dict[str, dict[str, str]]] = {}
-    for row in rows:
-        acct = row.account
-        if acct not in summary:
-            summary[acct] = {}
-        summary[acct][row.tag] = {
-            "value": row.value,
-            "currency": row.currency,
-        }
+    summary = _raw_account_summary(ib, account)
 
     return {
         "as_of_utc": _now_iso(),
@@ -321,104 +648,40 @@ def get_normalized_portfolio(
     include_offline_assets: bool = True,
     offline_assets_path: str | None = None,
 ) -> dict[str, Any]:
-    """Return unified portfolio with ticker/currency normalization and optional offline assets."""
-    ib = _connect_ib()
+    """Return unified portfolio with ticker/currency normalization and optional offline snapshot positions."""
     base = base_currency.upper().strip()
-
     rows: list[dict[str, Any]] = []
-    portfolio_items = ib.portfolio(account) if account else ib.portfolio()
-
-    for item in portfolio_items:
-        contract = item.contract
-        exchange = getattr(contract, "primaryExchange", None) or getattr(contract, "exchange", None)
-        market_value = _as_float(getattr(item, "marketValue", None))
-        if market_value is None:
-            position = _as_float(getattr(item, "position", None)) or 0.0
-            market_price = _as_float(getattr(item, "marketPrice", None)) or 0.0
-            market_value = position * market_price
-
-        rows.append(
-            {
-                "source": "ibkr",
-                "account": getattr(item, "account", None),
-                "symbol": contract.symbol,
-                "sec_type": contract.secType,
-                "exchange": contract.exchange,
-                "primary_exchange": getattr(contract, "primaryExchange", None),
-                "ticker_normalized": _normalize_ticker(contract.symbol, exchange),
-                "currency": contract.currency,
-                "quantity": _as_float(getattr(item, "position", None)),
-                "price": _as_float(getattr(item, "marketPrice", None)),
-                "average_cost": _as_float(getattr(item, "averageCost", None)),
-                "market_value": market_value,
-                "unrealized_pnl": _as_float(getattr(item, "unrealizedPNL", None)),
-                "realized_pnl": _as_float(getattr(item, "realizedPNL", None)),
-            }
-        )
-
     used_offline_path: str | None = None
+
+    try:
+        ib = _connect_ib()
+        rows.extend(_live_positions(ib, account))
+        fx_rates = _fx_rates_to_base(
+            ib,
+            {str(row.get("currency") or base).upper() for row in rows} | {base},
+            base,
+        )
+    except Exception:
+        ib = None
+        fx_rates = {base: 1.0}
+
     if include_offline_assets:
-        offline_assets, used_offline_path = _load_offline_assets(offline_assets_path)
-        for asset in offline_assets:
-            symbol = str(asset.get("symbol") or asset.get("ticker") or "OFFLINE").upper().strip()
-            exchange = str(asset.get("exchange") or "OFFLINE").upper().strip()
-            currency = str(asset.get("currency") or base).upper().strip()
+        offline_snapshot, used_offline_path = _load_offline_assets(offline_assets_path)
+        if offline_snapshot:
+            snapshot = _filter_snapshot_for_account(_rebase_snapshot(offline_snapshot, base), account)
+            rows.extend(_offline_positions_from_snapshot(snapshot))
+            for currency, rate in (snapshot.get("fx_rates") or {}).items():
+                if _as_float(rate) is not None:
+                    fx_rates[str(currency).upper()] = float(rate)
 
-            quantity = _as_float(asset.get("quantity"))
-            price = _as_float(asset.get("price"))
-            market_value = _as_float(asset.get("market_value"))
-            if market_value is None and quantity is not None and price is not None:
-                market_value = quantity * price
-
-            rows.append(
-                {
-                    "source": "offline",
-                    "account": asset.get("account"),
-                    "symbol": symbol,
-                    "sec_type": str(asset.get("sec_type") or "OFFLINE"),
-                    "exchange": exchange,
-                    "primary_exchange": None,
-                    "ticker_normalized": _normalize_ticker(symbol, exchange),
-                    "currency": currency,
-                    "quantity": quantity,
-                    "price": price,
-                    "average_cost": _as_float(asset.get("average_cost") or asset.get("cost_basis")),
-                    "market_value": market_value,
-                    "unrealized_pnl": _as_float(asset.get("unrealized_pnl")),
-                    "realized_pnl": _as_float(asset.get("realized_pnl")),
-                }
-            )
-
-    currencies = {str(row.get("currency") or base).upper() for row in rows}
-    fx = _fx_rates_to_base(ib, currencies, base)
-
-    total_base_value = 0.0
-    for row in rows:
-        currency = str(row.get("currency") or base).upper()
-        rate = fx.get(currency)
-        row["fx_to_base"] = rate
-
-        mv = _as_float(row.get("market_value"))
-        if rate is None or mv is None:
-            row["market_value_base"] = None
-            continue
-
-        base_value = mv * rate
-        row["market_value_base"] = base_value
-        total_base_value += base_value
-
-    for row in rows:
-        mv_base = _as_float(row.get("market_value_base"))
-        row["portfolio_weight"] = (mv_base / total_base_value) if (mv_base is not None and total_base_value > 0) else None
-
-    rows.sort(key=lambda r: abs(_as_float(r.get("market_value_base")) or 0.0), reverse=True)
+    rows, total_market_value_base = _finalize_position_rows(rows, fx_rates, base)
 
     return {
         "as_of_utc": _now_iso(),
         "base_currency": base,
-        "fx_rates": fx,
+        "fx_rates": fx_rates,
         "offline_assets_path": used_offline_path,
-        "total_market_value_base": total_base_value,
+        "total_market_value_base": total_market_value_base,
         "positions": rows,
     }
 
@@ -431,40 +694,7 @@ def get_open_orders(account: str | None = None) -> dict[str, Any]:
     Prefer `perm_id` for cross-session/cross-client tracking.
     """
     ib = _connect_ib()
-    trades = list(ib.reqAllOpenOrders())
-
-    rows: list[dict[str, Any]] = []
-    for trade in trades:
-        order = trade.order
-        status = trade.orderStatus
-        acct = getattr(order, "account", None)
-        if account and acct != account:
-            continue
-
-        payload = {
-            "account": acct,
-            "order_id": getattr(order, "orderId", None),
-            "perm_id": getattr(order, "permId", None),
-            "client_id": getattr(order, "clientId", None),
-            "action": getattr(order, "action", None),
-            "order_type": getattr(order, "orderType", None),
-            "total_quantity": _as_float(getattr(order, "totalQuantity", None)),
-            "limit_price": _as_float(getattr(order, "lmtPrice", None)),
-            "aux_price": _as_float(getattr(order, "auxPrice", None)),
-            "tif": getattr(order, "tif", None),
-            "outside_rth": getattr(order, "outsideRth", None),
-            "status": getattr(status, "status", None),
-            "filled": _as_float(getattr(status, "filled", None)),
-            "remaining": _as_float(getattr(status, "remaining", None)),
-            "avg_fill_price": _as_float(getattr(status, "avgFillPrice", None)),
-            "last_fill_price": _as_float(getattr(status, "lastFillPrice", None)),
-            "why_held": getattr(status, "whyHeld", None),
-            "mkt_cap_price": _as_float(getattr(status, "mktCapPrice", None)),
-            "contract": _contract_payload(trade.contract),
-        }
-        rows.append(payload)
-
-    rows.sort(key=lambda r: ((r.get("perm_id") or 0), (r.get("order_id") or 0)), reverse=True)
+    rows = _open_orders_payload(ib, account)
     return {
         "as_of_utc": _now_iso(),
         "count": len(rows),
@@ -479,46 +709,13 @@ def get_recent_trades(limit: int = 50, account: str | None = None) -> dict[str, 
     Each execution includes both `order_id` and `perm_id`.
     Prefer `perm_id` for durable reconciliation.
     """
-    if limit <= 0:
-        raise ValueError("limit must be > 0")
-    limit = min(limit, 500)
-
     ib = _connect_ib()
-    fills = ib.fills()
-
-    rows: list[dict[str, Any]] = []
-    for fill in fills:
-        execution = fill.execution
-        contract = fill.contract
-        commission = fill.commissionReport
-        acct = getattr(execution, "acctNumber", None)
-        if account and acct != account:
-            continue
-
-        rows.append(
-            {
-                "account": acct,
-                "exec_id": getattr(execution, "execId", None),
-                "order_id": getattr(execution, "orderId", None),
-                "perm_id": getattr(execution, "permId", None),
-                "side": getattr(execution, "side", None),
-                "shares": _as_float(getattr(execution, "shares", None)),
-                "price": _as_float(getattr(execution, "price", None)),
-                "time": str(getattr(execution, "time", "")) or None,
-                "commission": _as_float(getattr(commission, "commission", None)),
-                "commission_currency": getattr(commission, "currency", None),
-                "realized_pnl": _as_float(getattr(commission, "realizedPNL", None)),
-                "contract": _contract_payload(contract),
-            }
-        )
-
-    rows.sort(key=lambda r: r.get("time") or "", reverse=True)
-    limited = rows[:limit]
+    rows = _recent_trades_payload(ib, limit, account)
     return {
         "as_of_utc": _now_iso(),
-        "count": len(limited),
-        "total_available": len(rows),
-        "recent_trades": limited,
+        "count": len(rows),
+        "total_available": len(ib.fills()),
+        "recent_trades": rows,
     }
 
 
@@ -607,6 +804,46 @@ def get_order_status(order_id: int | None = None, perm_id: int | None = None) ->
         "fills": fill_rows,
         "log": log_rows,
     }
+
+
+@mcp.tool()
+def get_broker_state(
+    base_currency: str = "USD",
+    account: str | None = None,
+    recent_trades_limit: int = 50,
+    offline_snapshot_path: str | None = None,
+) -> dict[str, Any]:
+    """Return canonical IBKR broker state and persist a fallback snapshot on live success.
+
+    Falls back to the on-disk broker-state snapshot when live IBKR connectivity is unavailable.
+    """
+    base = base_currency.upper().strip()
+
+    try:
+        ib = _connect_ib()
+        snapshot = _build_live_broker_state(ib, base, account, recent_trades_limit)
+        written_path = _write_offline_snapshot(snapshot, offline_snapshot_path)
+        metadata = dict(snapshot.get("metadata", {}))
+        metadata["offline_snapshot_path"] = written_path
+        metadata["live_available"] = True
+        snapshot["metadata"] = metadata
+        return snapshot
+    except Exception as exc:
+        offline_snapshot, used_offline_path = _load_offline_assets(offline_snapshot_path)
+        if not offline_snapshot:
+            raise RuntimeError(
+                f"Live IBKR unavailable and no offline broker-state snapshot found: {exc}"
+            ) from exc
+
+        snapshot = _filter_snapshot_for_account(_rebase_snapshot(offline_snapshot, base), account)
+        snapshot["snapshot_source"] = "offline_snapshot"
+        metadata = dict(snapshot.get("metadata", {}))
+        metadata["offline_snapshot_path"] = used_offline_path
+        metadata["live_available"] = False
+        metadata["live_error"] = str(exc)
+        metadata["recent_trades_limit"] = recent_trades_limit
+        snapshot["metadata"] = metadata
+        return snapshot
 
 
 def main() -> None:
